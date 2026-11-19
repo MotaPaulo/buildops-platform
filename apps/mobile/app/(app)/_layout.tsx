@@ -1,21 +1,21 @@
 import { Stack } from 'expo-router';
-import { Pressable, Text } from 'react-native';
 
-import { supabase } from '@/lib/supabase';
+import { MembershipsProvider } from '@/lib/access';
 
 export default function AppLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerRight: () => (
-          <Pressable onPress={() => supabase.auth.signOut()} hitSlop={8} style={{ paddingHorizontal: 12 }}>
-            <Text>Sair</Text>
-          </Pressable>
-        ),
-      }}
-    >
-      <Stack.Screen name="index" options={{ title: 'Saldo de estoque' }} />
-      <Stack.Screen name="movement" options={{ title: 'Nova movimentação', headerRight: undefined }} />
-    </Stack>
+    <MembershipsProvider>
+      <Stack>
+        <Stack.Screen name="index" options={{ title: 'Saldo de estoque' }} />
+        <Stack.Screen name="movement" options={{ title: 'Nova movimentação' }} />
+        <Stack.Screen name="master-data/index" options={{ title: 'Cadastros' }} />
+        <Stack.Screen name="master-data/materials/index" options={{ title: 'Materiais' }} />
+        <Stack.Screen name="master-data/materials/[id]" options={{ title: 'Material' }} />
+        <Stack.Screen name="master-data/warehouses/index" options={{ title: 'Depósitos' }} />
+        <Stack.Screen name="master-data/warehouses/[id]" options={{ title: 'Depósito' }} />
+        <Stack.Screen name="master-data/sites/index" options={{ title: 'Obras' }} />
+        <Stack.Screen name="master-data/sites/[id]" options={{ title: 'Obra' }} />
+      </Stack>
+    </MembershipsProvider>
   );
 }

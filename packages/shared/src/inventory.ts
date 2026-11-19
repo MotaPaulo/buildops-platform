@@ -94,6 +94,90 @@ export function parseDecimal(text: string, maxDecimals = 3): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// -----------------------------------------------------------------------------
+// Master data
+// -----------------------------------------------------------------------------
+
+export interface Company {
+  id: string;
+  name: string;
+}
+
+export interface CostCenter {
+  id: string;
+  company_id: string;
+  code: string;
+  name: string;
+}
+
+export const SITE_STATUSES = ['planned', 'active', 'finished'] as const;
+export type SiteStatus = (typeof SITE_STATUSES)[number];
+
+/** On-screen labels (pt-BR). */
+export const SITE_STATUS_LABELS: Record<SiteStatus, string> = {
+  planned: 'Planejada',
+  active: 'Em andamento',
+  finished: 'Concluída',
+};
+
+export interface Site {
+  id: string;
+  company_id: string;
+  cost_center_id: string;
+  name: string;
+  address: string | null;
+  status: SiteStatus;
+}
+
+export interface Warehouse {
+  id: string;
+  company_id: string;
+  site_id: string | null;
+  name: string;
+  active: boolean;
+}
+
+export interface Material {
+  id: string;
+  sku: string | null;
+  name: string;
+  unit: string;
+  category: string | null;
+  active: boolean;
+}
+
+/** Units suggested when registering a material. Any other unit can be typed. */
+export const COMMON_UNITS = ['un', 'sc', 'kg', 't', 'm', 'm²', 'm³', 'l', 'br', 'cx', 'pç', 'rl'] as const;
+
+/** Roles that can edit each kind of master data. Directors always can. Mirrors the RLS write policies. */
+export const MASTER_DATA_ROLES = {
+  materials: ['manager', 'storekeeper'],
+  warehouses: ['manager', 'storekeeper'],
+  sites: ['manager'],
+} as const satisfies Record<string, readonly AppRole[]>;
+
+export type MasterDataKind = keyof typeof MASTER_DATA_ROLES;
+
+/** Mirrors has_role_in_company(). */
+export function hasRoleInCompany(
+  memberships: readonly Membership[],
+  companyId: string,
+  roles: readonly AppRole[],
+): boolean {
+  return memberships.some(
+    (m) => m.role === 'director' || (m.company_id === companyId && roles.includes(m.role)),
+  );
+}
+
+/**
+ * Whether the user can edit this kind of master data in at least one company.
+ * Materials are a group-wide catalog, so any membership with an allowed role is enough.
+ */
+export function canEditMasterData(memberships: readonly Membership[], kind: MasterDataKind): boolean {
+  const roles: readonly AppRole[] = MASTER_DATA_ROLES[kind];
+  return memberships.some((m) => m.role === 'director' || roles.includes(m.role));
+}
+
 /** Row returned by the get_stock_balances RPC. */
 export interface StockBalance {
   company_id: string;

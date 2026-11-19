@@ -7,7 +7,7 @@ import {
   type StockBalance,
 } from '@buildops/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -21,6 +21,7 @@ import {
   View,
 } from 'react-native';
 
+import { ACCENT, Chips, Field } from '@/components/form';
 import { useMemberships } from '@/lib/access';
 import { pickPhoto, PHOTO_BUCKET, uploadMovementPhoto, type PickedPhoto } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
@@ -30,7 +31,6 @@ type CostCenter = { id: string; company_id: string; code: string; name: string }
 type Site = { id: string; cost_center_id: string };
 type Material = { id: string; sku: string | null; name: string; unit: string };
 
-const ACCENT = '#b8430f';
 const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 
 const KIND_HINTS: Record<ManualMovementKind, string> = {
@@ -359,55 +359,14 @@ function friendlyError(code: string | undefined, message: string): string {
   return message;
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
-      {hint && <Text style={styles.hint}>{hint}</Text>}
-    </View>
-  );
-}
-
-function Chips({
-  options,
-  value,
-  onChange,
-}: {
-  options: { id: string; label: string }[];
-  value: string | null;
-  onChange: (id: string) => void;
-}) {
-  if (!options.length) return <Text style={styles.hint}>Nenhuma opção disponível para o seu perfil.</Text>;
-  return (
-    <View style={styles.chips}>
-      {options.map((o) => {
-        const active = o.id === value;
-        return (
-          <Pressable key={o.id} style={[styles.chip, active && styles.chipActive]} onPress={() => onChange(o.id)}>
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { marginTop: 48, textAlign: 'center', color: '#555', paddingHorizontal: 24 },
   form: { padding: 16, gap: 18, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  field: { gap: 6 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333' },
   hint: { fontSize: 13, color: '#666' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#fff' },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#fff' },
-  chipActive: { borderColor: ACCENT, backgroundColor: ACCENT },
-  chipText: { color: '#333' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
   selected: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: ACCENT, borderRadius: 8, padding: 12, backgroundColor: '#fff4ee' },
   selectedText: { fontSize: 16, fontWeight: '600', flex: 1 },
   link: { color: ACCENT, fontWeight: '600' },

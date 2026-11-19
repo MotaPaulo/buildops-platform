@@ -1,11 +1,32 @@
-import type { StockBalance } from '@buildops/shared';
-import { router, useFocusEffect } from 'expo-router';
+import { canEditMasterData, MASTER_DATA_ROLES, type MasterDataKind, type StockBalance } from '@buildops/shared';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
+import { useMemberships } from '@/lib/access';
 import { supabase } from '@/lib/supabase';
 
 const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+
+function HeaderActions() {
+  const { memberships } = useMemberships();
+  const canEditAny =
+    !!memberships &&
+    (Object.keys(MASTER_DATA_ROLES) as MasterDataKind[]).some((k) => canEditMasterData(memberships, k));
+
+  return (
+    <View style={styles.headerActions}>
+      {canEditAny && (
+        <Pressable onPress={() => router.push('/master-data')} hitSlop={8}>
+          <Text style={styles.headerLink}>Cadastros</Text>
+        </Pressable>
+      )}
+      <Pressable onPress={() => supabase.auth.signOut()} hitSlop={8}>
+        <Text>Sair</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function StockBalancesScreen() {
   const [rows, setRows] = useState<StockBalance[]>([]);
@@ -32,6 +53,7 @@ export default function StockBalancesScreen() {
 
   return (
     <View style={styles.screen}>
+      <Stack.Screen options={{ headerRight: () => <HeaderActions /> }} />
       <FlatList
         data={rows}
         keyExtractor={(r) => `${r.warehouse_id}:${r.material_id}`}
@@ -76,6 +98,8 @@ export default function StockBalancesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  headerActions: { flexDirection: 'row', gap: 20, paddingHorizontal: 12 },
+  headerLink: { color: '#b8430f', fontWeight: '600' },
   list: { padding: 16, paddingBottom: 96, gap: 8 },
   fab: { position: 'absolute', right: 16, bottom: 24, backgroundColor: '#b8430f', borderRadius: 28, paddingVertical: 14, paddingHorizontal: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   fabText: { color: '#fff', fontSize: 16, fontWeight: '600' },

@@ -11,7 +11,8 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 - [x] Balance per warehouse with minimum-stock alert (RPC `get_stock_balances`)
 - [x] Storage bucket for invoice and material photos
 - [x] App: login and balances screen
-- [ ] Master data for materials, warehouses and sites in the app
+- [x] Master data for materials, warehouses and sites in the app
+- [ ] Master data for cost centers and minimum stock in the app
 - [x] Receipts, issues and adjustments from the phone, with a photo of the invoice or material
 - [ ] Transfer screen
 - [ ] Balances by site, cost center and group consolidated
@@ -33,6 +34,27 @@ Stock receipts and issues, separated by company and cost center, with a consolid
    destination) linked to the same row in `transfers`. Within a company the manager authorizes;
    between companies, a director.
 6. **Imported data is never duplicated.** The pair `external_system` + `external_ref` is unique.
+7. **A warehouse tied to a site belongs to the site's company** (composite foreign key).
+8. **A material's unit is fixed once it has movements.** Otherwise "40 sc" in the history would
+   silently become "40 kg". To fix the catalog, create a new material and deactivate the old one.
+9. **Master data is deactivated, not deleted.** Inactive materials and warehouses, and finished sites,
+   stay in the history but no longer appear when recording movements.
+
+## Master data in the app
+
+"Cadastros" on the balances screen, shown only to roles that can edit something:
+
+| Screen | Who edits | Notes |
+| --- | --- | --- |
+| Materials | director, manager, storekeeper | Group-wide catalog. SKU is optional, unique and stored uppercase. Category suggestions come from existing materials. |
+| Warehouses | director, manager and storekeeper of the company | Optionally tied to a site; choosing a site suggests the name "Canteiro {site}". |
+| Sites | director, manager of the company | Requires an active cost center. Creating a site can also create its site warehouse. |
+
+The company of a warehouse or site can't change after it's created: its movements already belong to
+that company.
+
+RLS hides rows a user can't change, so an `update` that matches no rows is a denial, not an error.
+The forms check the number of rows returned and report it.
 
 ## Recording movements in the app
 
