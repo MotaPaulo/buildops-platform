@@ -1,57 +1,90 @@
 # BuildOps Platform
 
-Plataforma interna de gestão para um grupo de empresas de construção, urbanismo e imóveis.
-Um único aplicativo para **Android, iOS e web**, construído em etapas.
+Internal management platform for a group of construction, urban development and real estate companies.
+A single app for **Android, iOS and web**, built in stages.
 
-| Etapa | Módulo | Status |
+| Stage | Module | Status |
 | --- | --- | --- |
-| 0 | Descoberta: acesso aos sistemas atuais e mapa dos dados | planejada |
-| 1 | **Controle de estoque** | em desenvolvimento |
-| 2 | Relatório diário de obra (áudio, fotos e IA) | planejada |
-| 3 | Cronograma ligado ao relatório e ao estoque | planejada |
+| 0 | Discovery: access to current systems and data mapping | planned |
+| 1 | **Inventory control** | in development |
+| 2 | Daily site report (audio, photos and AI) | planned |
+| 3 | Schedule linked to the site report and inventory | planned |
+
+## What the platform will deliver
+
+### Integrations with current systems
+
+Each company in the group runs its own legacy system today.
+BuildOps does not replace them on day one — it reads from them first.
+
+- **Read before replace.** Data from legacy systems is pulled in with `source = 'integration'`
+  (or `'import'` for spreadsheets) and tagged with `external_system` + `external_ref`, so the same
+  record is never imported twice. The legacy systems remain the source of truth for their own data.
+- **One consolidated view.** Materials, cost centers and job sites from all companies land in a single
+  database, so leadership sees the whole group while each manager sees only their own scope.
+- **Same access rules everywhere.** Permissions are enforced in the database (Row Level Security),
+  so the mobile app, the web dashboard and the integrations all follow the same rules.
+- Stage 0 maps what each system exposes (API, database or exports) before any integration is built.
+
+### AI assistant for the site foreman
+
+The foreman (*mestre de obras*) is the person on site all day, and the one with the least time for
+typing into forms. The AI is there to turn what they say and photograph into structured data.
+
+- **Daily site report by voice.** The foreman records the day by audio, text and photos — also
+  offline. The AI transcribes and organizes it into a standard report: work performed, crew,
+  weather, incidents and open issues. The office receives it the same day.
+- **Inventory from the report.** Materials mentioned in the report ("used 40 bags of cement on
+  slab 3") are matched to the catalog and suggested as stock withdrawals for the right job site and
+  cost center, instead of being entered by hand.
+- **Low-stock and shortage alerts.** The AI cross-checks consumption against current balances and
+  minimum levels and warns when a material is running out — and, once the schedule is in place
+  (Stage 3), when the next task is missing material.
+- **Human in the loop.** Nothing the AI produces becomes an official record until a person reviews
+  and confirms it. Stock movements stay immutable and fully traceable.
 
 ## Stack
 
-- **App**: [Expo](https://expo.dev) + React Native + TypeScript, com Expo Router. Um código para Android, iOS e web.
-- **Backend**: [Supabase](https://supabase.com): Postgres, autenticação, storage de fotos e Row Level Security (RLS) por empresa e centro de custo.
+- **App**: [Expo](https://expo.dev) + React Native + TypeScript, with Expo Router. One codebase for Android, iOS and web.
+- **Backend**: [Supabase](https://supabase.com): Postgres, authentication, photo storage and Row Level Security (RLS) per company and cost center.
 - **Monorepo**: pnpm workspaces.
 
-## Estrutura
+## Structure
 
 ```
 apps/
-  mobile/            App Expo (Android, iOS e web)
+  mobile/            Expo app (Android, iOS and web)
 packages/
-  shared/            Tipos e regras de domínio compartilhados
+  shared/            Shared types and domain rules
 supabase/
-  migrations/        Schema do banco (SQL versionado)
-  seed.sql           Dados de exemplo para desenvolvimento
+  migrations/        Database schema (versioned SQL)
+  seed.sql           Sample data for development
 docs/
-  arquitetura.md     Visão geral e decisões técnicas
-  estoque.md         Escopo e regras do módulo de estoque
+  arquitetura.md     Architecture overview and technical decisions
+  estoque.md         Inventory module scope and rules
 ```
 
-## Como rodar
+## Getting started
 
-Pré-requisitos: Node.js 20+, pnpm 12+ e Docker Desktop (para o Supabase local).
-O Supabase CLI vem como dependência do projeto e roda via `pnpm supabase`.
+Prerequisites: Node.js 20+, pnpm 12+ and Docker Desktop (for local Supabase).
+The Supabase CLI is a project dependency and runs via `pnpm supabase`.
 
 ```bash
 pnpm install
 
-# banco local com schema e dados de exemplo
-pnpm supabase init        # só na primeira vez; mantém as migrations existentes
+# local database with schema and sample data
+pnpm supabase init        # first time only; keeps the existing migrations
 pnpm db:start
 pnpm db:reset
 
 # app
-cp apps/mobile/.env.example apps/mobile/.env   # preencha com a URL e a chave do `pnpm supabase status`
-pnpm dev                  # QR code para o Expo Go; tecle "w" para abrir no navegador
+cp apps/mobile/.env.example apps/mobile/.env   # fill in the URL and key from `pnpm supabase status`
+pnpm dev                  # QR code for Expo Go; press "w" to open in the browser
 ```
 
-Ao atualizar o Expo SDK, rode `pnpm --filter mobile exec expo install --fix` para alinhar as dependências.
+When upgrading the Expo SDK, run `pnpm --filter mobile exec expo install --fix` to align dependencies.
 
-## Documentação
+## Documentation (Portuguese)
 
-- [Arquitetura](docs/arquitetura.md)
-- [Módulo de estoque](docs/estoque.md)
+- [Architecture](docs/arquitetura.md)
+- [Inventory module](docs/estoque.md)
