@@ -271,9 +271,19 @@ export default function NewMovementScreen() {
             </>
           )}
           {currentBalance !== null && material && (
-            <Text style={styles.hint}>
-              Saldo neste depósito: {formatQty(currentBalance)} {material.unit}
-            </Text>
+            <View style={[styles.row, { justifyContent: 'space-between' }]}>
+              <Text style={styles.hint}>
+                Saldo neste depósito: {formatQty(currentBalance)} {material.unit}
+              </Text>
+              <Pressable
+                hitSlop={8}
+                onPress={() =>
+                  router.push({ pathname: '/history', params: { warehouseId: warehouse!.id, materialId: material.id } })
+                }
+              >
+                <Text style={styles.link}>Ver histórico</Text>
+              </Pressable>
+            </View>
           )}
         </Field>
 

@@ -24,6 +24,18 @@ const SECTIONS: { kind: MasterDataKind; title: string; description: string; href
     description: 'Obras de cada empresa e o centro de custo de cada uma.',
     href: '/master-data/sites',
   },
+  {
+    kind: 'costCenters',
+    title: 'Centros de custo',
+    description: 'Códigos usados pelo financeiro para apropriar entradas e consumos.',
+    href: '/master-data/cost-centers',
+  },
+  {
+    kind: 'minimums',
+    title: 'Estoque mínimo',
+    description: 'Quantidade mínima de cada material por depósito, para o alerta de falta.',
+    href: '/master-data/minimums',
+  },
 ];
 
 export default function MasterDataScreen() {

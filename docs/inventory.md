@@ -12,10 +12,11 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 - [x] Storage bucket for invoice and material photos
 - [x] App: login and balances screen
 - [x] Master data for materials, warehouses and sites in the app
-- [ ] Master data for cost centers and minimum stock in the app
+- [x] Master data for cost centers and minimum stock in the app
 - [x] Receipts, issues and adjustments from the phone, with a photo of the invoice or material
 - [x] Transfer screen
-- [ ] Balances by site, cost center and group consolidated
+- [x] Movement history with filters, details and photos
+- [x] Balances by warehouse, site (with its cost center), company and group consolidated
 - [ ] Web dashboard with filters and Excel export
 - [ ] Reading data from current systems (depends on Stage 0)
 - [ ] User and membership management by the directors
@@ -40,6 +41,10 @@ Stock receipts and issues, separated by company and cost center, with a consolid
    silently become "40 kg". To fix the catalog, create a new material and deactivate the old one.
 9. **Master data is deactivated, not deleted.** Inactive materials and warehouses, and finished sites,
    stay in the history but no longer appear when recording movements.
+10. **A cost center in use stays active.** It can't be deactivated while a site that isn't finished
+    charges to it. Codes are unique per company and stored uppercase.
+11. **Minimums alert even without stock.** A material with a minimum in a warehouse shows up in the
+    balances (at zero) and is flagged, even if it was never received there.
 
 ## Master data in the app
 
@@ -50,6 +55,8 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 | Materials | director, manager, storekeeper | Group-wide catalog. SKU is optional, unique and stored uppercase. Category suggestions come from existing materials. |
 | Warehouses | director, manager and storekeeper of the company | Optionally tied to a site; choosing a site suggests the name "Canteiro {site}". |
 | Sites | director, manager of the company | Requires an active cost center. Creating a site can also create its site warehouse. |
+| Cost centers | director, manager of the company | Code (as used by finance) and name. Listed with the sites that charge to them. |
+| Minimum stock | director, manager and storekeeper of the company | Per warehouse: add materials, set or remove each minimum, saved together. The current balance is shown next to each one. |
 
 The company of a warehouse or site can't change after it's created: its movements already belong to
 that company.
@@ -83,6 +90,31 @@ transfer form:
 - The user who submits is recorded as the authorizer (`transfers.authorized_by`). There is no
   separate approval step yet.
 
+## Balances screen
+
+The physical balance is always per warehouse; the other views add warehouses up:
+
+| View | Groups by | Notes |
+| --- | --- | --- |
+| Depósito | Warehouse | Tapping a material opens a new movement for it. |
+| Obra | Site, labeled with its cost center code; warehouses without a site are grouped as "Almoxarifados" | Stands in for "balance by cost center" until Stage 0 decides whether stock is also tracked per cost center. |
+| Empresa | Company | Shown only to users with more than one company. |
+| Grupo | Everything the user can see | Group-wide consolidated balance. |
+
+In the summed views, a material is flagged with how many warehouses are below minimum, and tapping
+it opens its history.
+
+## Movement history
+
+"Histórico" on the balances screen lists movements newest first, 30 at a time, filtered by kind
+(transfers include both sides) and warehouse. It can also be filtered by material, from the summed
+balance views or from "Ver histórico" on the new movement screen.
+
+Each movement opens a read-only detail: who recorded it (or the source system, for imported ones),
+who authorized it (transfers), invoice, unit and total cost, notes and the photo. Users only see
+movements of cost centers they have access to; the other side of a transfer between companies shows
+as "outra empresa".
+
 ## Photos
 
 Private bucket `movement-photos`, with path `{company_id}/{year}/{month}/{uuid}.jpg`. Only users with
@@ -90,6 +122,12 @@ access to the company can upload or view its photos. The path is stored in `stoc
 
 The uploader can delete a photo only while no movement references it. Once attached, a photo is as
 immutable as the movement history.
+
+The app sends the picker's base64 data, decoded on the device. Reading the file's local URI with
+`fetch()` returns an error body in Expo Go, which used to be stored as the "photo". The upload is
+rejected unless the bytes look like a JPEG, PNG, WebP or HEIC image. The history detail screen
+shows a notice if a stored photo can't be displayed. It is shown through a signed URL that expires
+after 10 minutes.
 
 ## To validate in Stage 0
 

@@ -129,6 +129,13 @@ export interface CostCenter {
   company_id: string;
   code: string;
   name: string;
+  active?: boolean;
+}
+
+export interface StockMinimum {
+  warehouse_id: string;
+  material_id: string;
+  min_quantity: number;
 }
 
 export const SITE_STATUSES = ['planned', 'active', 'finished'] as const;
@@ -175,6 +182,8 @@ export const MASTER_DATA_ROLES = {
   materials: ['manager', 'storekeeper'],
   warehouses: ['manager', 'storekeeper'],
   sites: ['manager'],
+  costCenters: ['manager'],
+  minimums: ['manager', 'storekeeper'],
 } as const satisfies Record<string, readonly AppRole[]>;
 
 export type MasterDataKind = keyof typeof MASTER_DATA_ROLES;
@@ -212,4 +221,98 @@ export interface StockBalance {
   min_quantity: number | null;
   below_minimum: boolean;
   last_movement_at: string | null;
+}
+
+// -----------------------------------------------------------------------------
+// Balance views
+// -----------------------------------------------------------------------------
+
+/** How the balances screen groups warehouse balances. */
+export const BALANCE_VIEWS = ['warehouse', 'site', 'company', 'group'] as const;
+export type BalanceView = (typeof BALANCE_VIEWS)[number];
+
+/** On-screen labels (pt-BR). */
+export const BALANCE_VIEW_LABELS: Record<BalanceView, string> = {
+  warehouse: 'Depósito',
+  site: 'Obra',
+  company: 'Empresa',
+  group: 'Grupo',
+};
+
+export interface BalanceGroupRow {
+  material_id: string;
+  material_name: string;
+  unit: string;
+  quantity: number;
+  /** Warehouses in this group where the material is below its minimum. */
+  below_minimum_count: number;
+  /** Only in the warehouse view: the warehouse row it came from. */
+  warehouse_id?: string;
+}
+
+export interface BalanceGroup {
+  key: string;
+  title: string;
+  rows: BalanceGroupRow[];
+}
+
+export interface BalanceGroupNames {
+  /** site_id -> label, e.g. "OB-001 · Residencial Jardim" */
+  site: (siteId: string) => string;
+  company: (companyId: string) => string;
+  /** Label for warehouses without a site, in the site view. */
+  noSite: string;
+  group: string;
+}
+
+/**
+ * Groups physical balances (one row per warehouse and material) by warehouse, site, company or the
+ * whole group, summing each material. Materials keep a single unit, so the sums are meaningful.
+ */
+export function groupBalances(
+  balances: readonly StockBalance[],
+  view: BalanceView,
+  names: BalanceGroupNames,
+): BalanceGroup[] {
+  const keyOf = (b: StockBalance): [string, string] => {
+    switch (view) {
+      case 'warehouse':
+        return [b.warehouse_id, b.warehouse_name];
+      case 'site':
+        return b.site_id ? [b.site_id, names.site(b.site_id)] : ['none', names.noSite];
+      case 'company':
+        return [b.company_id, names.company(b.company_id)];
+      case 'group':
+        return ['group', names.group];
+    }
+  };
+
+  const groups = new Map<string, { title: string; rows: Map<string, BalanceGroupRow> }>();
+  for (const b of balances) {
+    const [key, title] = keyOf(b);
+    const group = groups.get(key) ?? { title, rows: new Map() };
+    groups.set(key, group);
+    const row = group.rows.get(b.material_id) ?? {
+      material_id: b.material_id,
+      material_name: b.material_name,
+      unit: b.unit,
+      quantity: 0,
+      below_minimum_count: 0,
+      ...(view === 'warehouse' && { warehouse_id: b.warehouse_id }),
+    };
+    // Quantities have 3 decimal places; rounding avoids 0.1 + 0.2 artifacts.
+    row.quantity = Math.round((row.quantity + Number(b.quantity)) * 1000) / 1000;
+    if (b.below_minimum) row.below_minimum_count++;
+    group.rows.set(b.material_id, row);
+  }
+
+  return [...groups.entries()]
+    .map(([key, g]) => ({
+      key,
+      title: g.title,
+      rows: [...g.rows.values()].sort((a, b) => a.material_name.localeCompare(b.material_name, 'pt-BR')),
+    }))
+    .sort((a, b) =>
+      a.key === 'none' ? 1 : b.key === 'none' ? -1 : a.title.localeCompare(b.title, 'pt-BR'),
+    );
 }

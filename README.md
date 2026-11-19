@@ -86,18 +86,22 @@ To test on a phone with Expo Go, set `EXPO_PUBLIC_SUPABASE_URL` in `apps/mobile/
 computer's LAN IP (e.g. `http://192.168.1.9:54321`) instead of `127.0.0.1`, and keep the Wi-Fi
 network profile as Private so the firewall lets the phone in.
 
+On Windows, a running `pnpm dev` may write wrong typed routes for newly added screens (e.g.
+`/master-data/cost-centers/index` instead of `/master-data/cost-centers`), which breaks
+`pnpm typecheck`. Restarting `pnpm dev` regenerates them correctly.
+
 ### Test users
 
 All with password `buildops123`. Companies and cost centers come from `supabase/seed.sql`.
 
 | Email | Role | Scope | What to try |
 | --- | --- | --- | --- |
-| `diretoria@buildops.test` | Director | Whole group | Everything, including transfers between companies |
-| `gestor@buildops.test` | Manager | Construtora Exemplo | Adjustments, transfers within the company, sites |
+| `diretoria@buildops.test` | Director | Whole group | Everything, including transfers between companies and the "Empresa" balance view |
+| `gestor@buildops.test` | Manager | Construtora Exemplo | Adjustments, transfers within the company, sites and cost centers |
 | `gestor.jardim@buildops.test` | Manager | Construtora Exemplo, OB-001 only | Can't move stock charged to other cost centers |
-| `almox@buildops.test` | Storekeeper | Construtora Exemplo | Receipts and issues, materials and warehouses; no transfers |
-| `mestre@buildops.test` | Foreman | Construtora Exemplo, OB-001 | Issues only, charged to Residencial Jardim |
-| `mestre.central@buildops.test` | Foreman | Construtora Exemplo, OB-002 | Issues only, charged to Edifício Central |
+| `almox@buildops.test` | Storekeeper | Construtora Exemplo | Receipts and issues, materials, warehouses and minimum stock; no transfers or cost centers |
+| `mestre@buildops.test` | Foreman | Construtora Exemplo, OB-001 | Issues only, charged to Residencial Jardim; history shows only OB-001 |
+| `mestre.central@buildops.test` | Foreman | Construtora Exemplo, OB-002 | Issues only, charged to Edifício Central; history shows only OB-002 |
 | `gestor.urbanismo@buildops.test` | Manager | Urbanismo Exemplo | Sees only the other company's stock |
 | `almox.urbanismo@buildops.test` | Storekeeper | Urbanismo Exemplo | Same, as storekeeper |
 | `semacesso@buildops.test` | None | Nothing | Empty screens; no actions offered |
