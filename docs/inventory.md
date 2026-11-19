@@ -14,7 +14,7 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 - [x] Master data for materials, warehouses and sites in the app
 - [ ] Master data for cost centers and minimum stock in the app
 - [x] Receipts, issues and adjustments from the phone, with a photo of the invoice or material
-- [ ] Transfer screen
+- [x] Transfer screen
 - [ ] Balances by site, cost center and group consolidated
 - [ ] Web dashboard with filters and Excel export
 - [ ] Reading data from current systems (depends on Stage 0)
@@ -32,7 +32,8 @@ Stock receipts and issues, separated by company and cost center, with a consolid
    corrected with an inventory adjustment, made by a manager or director.
 5. **A transfer creates two movements** (`transfer_out` at the source and `transfer_in` at the
    destination) linked to the same row in `transfers`. Within a company the manager authorizes;
-   between companies, a director.
+   between companies, a director. The authorizer needs access to both cost centers, and inactive
+   warehouses or materials can't be used.
 6. **Imported data is never duplicated.** The pair `external_system` + `external_ref` is unique.
 7. **A warehouse tied to a site belongs to the site's company** (composite foreign key).
 8. **A material's unit is fixed once it has movements.** Otherwise "40 sc" in the history would
@@ -68,6 +69,19 @@ still has the final say.
 - The photo is uploaded before the movement is inserted. If the database rejects the movement, the
   photo is deleted.
 - Tapping a balance opens the form with the warehouse and material already filled in.
+
+## Transfers in the app
+
+Managers and directors see "Transferência" among the kinds on the new movement screen. The
+transfer form:
+
+- Origin: only warehouses of companies where the user authorizes transfers, and only materials
+  with stock there (the balance is shown on each option).
+- Destination: other warehouses. Managers see their company's; directors also see other
+  companies', with a warning that the transfer is between companies.
+- Cost centers at both ends default to the site's cost center when the warehouse belongs to a site.
+- The user who submits is recorded as the authorizer (`transfers.authorized_by`). There is no
+  separate approval step yet.
 
 ## Photos
 

@@ -29,6 +29,8 @@ function HeaderActions() {
 }
 
 export default function StockBalancesScreen() {
+  const { memberships } = useMemberships();
+  const noAccess = memberships?.length === 0;
   const [rows, setRows] = useState<StockBalance[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,7 +63,12 @@ export default function StockBalancesScreen() {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            {error ?? (refreshing ? 'Carregando…' : 'Nenhum saldo para as empresas do seu perfil.')}
+            {error ??
+              (refreshing
+                ? 'Carregando…'
+                : noAccess
+                  ? 'Seu usuário ainda não tem acesso a nenhuma empresa. Peça à diretoria para liberar.'
+                  : 'Nenhum saldo para as empresas do seu perfil.')}
           </Text>
         }
         renderItem={({ item }) => (
@@ -89,9 +96,11 @@ export default function StockBalancesScreen() {
           </Pressable>
         )}
       />
-      <Pressable style={styles.fab} onPress={() => router.push('/movement')}>
-        <Text style={styles.fabText}>+ Nova movimentação</Text>
-      </Pressable>
+      {memberships && !noAccess && (
+        <Pressable style={styles.fab} onPress={() => router.push('/movement')}>
+          <Text style={styles.fabText}>+ Nova movimentação</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import {
   canRegisterMovement,
+  canTransfer,
   MANUAL_MOVEMENT_KINDS,
   MOVEMENT_LABELS,
   parseDecimal,
@@ -33,6 +34,9 @@ type Material = { id: string; sku: string | null; name: string; unit: string };
 
 const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 
+/** Extra option in the kind selector that opens the transfer screen. */
+const TRANSFER = 'transfer';
+
 const KIND_HINTS: Record<ManualMovementKind, string> = {
   in: 'Compra ou devolução de material',
   out: 'Consumo na obra',
@@ -49,6 +53,7 @@ export default function NewMovementScreen() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [balances, setBalances] = useState<StockBalance[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const [kind, setKind] = useState<ManualMovementKind | null>(null);
   const [warehouseId, setWarehouseId] = useState<string | null>(params.warehouseId ?? null);
@@ -80,6 +85,7 @@ export default function NewMovementScreen() {
       setSites(s.data as Site[]);
       setMaterials(m.data as Material[]);
       setBalances(b.data as StockBalance[]);
+      setLoaded(true);
     });
   }, []);
 
@@ -199,8 +205,8 @@ export default function NewMovementScreen() {
 
   const fatal = accessError ?? loadError;
   if (fatal) return <Text style={styles.center}>{fatal}</Text>;
-  if (!memberships) return <ActivityIndicator style={styles.center} />;
-  if (!allowedKinds.length && costCenters.length) {
+  if (!memberships || !loaded) return <ActivityIndicator style={styles.center} />;
+  if (!allowedKinds.length && !canTransfer(memberships)) {
     return <Text style={styles.center}>Seu perfil não tem permissão para lançar movimentações.</Text>;
   }
 
@@ -209,9 +215,19 @@ export default function NewMovementScreen() {
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Field label="Tipo" hint={kind ? KIND_HINTS[kind] : undefined}>
           <Chips
-            options={allowedKinds.map((k) => ({ id: k, label: MOVEMENT_LABELS[k] }))}
+            options={[
+              ...allowedKinds.map((k) => ({ id: k, label: MOVEMENT_LABELS[k] })),
+              ...(canTransfer(memberships) ? [{ id: TRANSFER, label: 'Transferência' }] : []),
+            ]}
             value={kind}
-            onChange={(k) => setKind(k as ManualMovementKind)}
+            onChange={(k) =>
+              k === TRANSFER
+                ? router.replace({
+                    pathname: '/transfer',
+                    params: { ...(warehouseId && { warehouseId }), ...(materialId && { materialId }) },
+                  })
+                : setKind(k as ManualMovementKind)
+            }
           />
         </Field>
 

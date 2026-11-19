@@ -75,6 +75,27 @@ export function canRegisterMovement(
   );
 }
 
+/** Whether the user can authorize at least one kind of transfer (managers and directors). */
+export function canTransfer(memberships: readonly Membership[]): boolean {
+  return memberships.some((m) => m.role === 'director' || m.role === 'manager');
+}
+
+/**
+ * Mirrors create_transfer(): within a company the manager authorizes, between companies only
+ * directors. The caller also needs access to both cost centers.
+ */
+export function canAuthorizeTransfer(
+  memberships: readonly Membership[],
+  from: CostCenterRef,
+  to: CostCenterRef,
+): boolean {
+  const roleOk =
+    from.company_id === to.company_id
+      ? hasRoleInCompany(memberships, from.company_id, ['manager'])
+      : memberships.some((m) => m.role === 'director');
+  return roleOk && canAccessCostCenter(memberships, from) && canAccessCostCenter(memberships, to);
+}
+
 /**
  * Parses a number typed in Brazilian notation: "1.250,5", "1500", "2,75".
  * Without a comma, a dot followed by groups of 3 digits is a thousands separator ("1.500" = 1500);

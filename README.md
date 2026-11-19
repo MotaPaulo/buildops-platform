@@ -75,12 +75,32 @@ pnpm install
 # local database with schema and sample data
 pnpm db:start            # first run downloads the Docker images
 pnpm db:reset            # reapplies migrations + seed (wipes local data)
-pnpm db:users            # test users, one per role (password: buildops123)
+pnpm db:users            # test users for each access level (see below)
 
 # app
 cp apps/mobile/.env.example apps/mobile/.env   # set the PUBLISHABLE_KEY from `pnpm supabase status`
 pnpm dev                  # QR code for Expo Go; press "w" to open in the browser
 ```
+
+To test on a phone with Expo Go, set `EXPO_PUBLIC_SUPABASE_URL` in `apps/mobile/.env` to the
+computer's LAN IP (e.g. `http://192.168.1.9:54321`) instead of `127.0.0.1`, and keep the Wi-Fi
+network profile as Private so the firewall lets the phone in.
+
+### Test users
+
+All with password `buildops123`. Companies and cost centers come from `supabase/seed.sql`.
+
+| Email | Role | Scope | What to try |
+| --- | --- | --- | --- |
+| `diretoria@buildops.test` | Director | Whole group | Everything, including transfers between companies |
+| `gestor@buildops.test` | Manager | Construtora Exemplo | Adjustments, transfers within the company, sites |
+| `gestor.jardim@buildops.test` | Manager | Construtora Exemplo, OB-001 only | Can't move stock charged to other cost centers |
+| `almox@buildops.test` | Storekeeper | Construtora Exemplo | Receipts and issues, materials and warehouses; no transfers |
+| `mestre@buildops.test` | Foreman | Construtora Exemplo, OB-001 | Issues only, charged to Residencial Jardim |
+| `mestre.central@buildops.test` | Foreman | Construtora Exemplo, OB-002 | Issues only, charged to Edifício Central |
+| `gestor.urbanismo@buildops.test` | Manager | Urbanismo Exemplo | Sees only the other company's stock |
+| `almox.urbanismo@buildops.test` | Storekeeper | Urbanismo Exemplo | Same, as storekeeper |
+| `semacesso@buildops.test` | None | Nothing | Empty screens; no actions offered |
 
 When upgrading the Expo SDK, run `pnpm --filter mobile exec expo install --fix` to align dependencies.
 

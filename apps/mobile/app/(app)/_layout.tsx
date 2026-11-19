@@ -8,6 +8,7 @@ export default function AppLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ title: 'Saldo de estoque' }} />
         <Stack.Screen name="movement" options={{ title: 'Nova movimentação' }} />
+        <Stack.Screen name="transfer" options={{ title: 'Transferência' }} />
         <Stack.Screen name="master-data/index" options={{ title: 'Cadastros' }} />
         <Stack.Screen name="master-data/materials/index" options={{ title: 'Materiais' }} />
         <Stack.Screen name="master-data/materials/[id]" options={{ title: 'Material' }} />
