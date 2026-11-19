@@ -73,12 +73,12 @@ The Supabase CLI is a project dependency and runs via `pnpm supabase`.
 pnpm install
 
 # local database with schema and sample data
-pnpm supabase init        # first time only; keeps the existing migrations
-pnpm db:start
-pnpm db:reset
+pnpm db:start            # first run downloads the Docker images
+pnpm db:reset            # reapplies migrations + seed (wipes local data)
+pnpm db:users            # test users, one per role (password: buildops123)
 
 # app
-cp apps/mobile/.env.example apps/mobile/.env   # fill in the URL and key from `pnpm supabase status`
+cp apps/mobile/.env.example apps/mobile/.env   # set the PUBLISHABLE_KEY from `pnpm supabase status`
 pnpm dev                  # QR code for Expo Go; press "w" to open in the browser
 ```
 
