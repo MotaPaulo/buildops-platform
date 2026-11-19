@@ -23,3 +23,14 @@ export function looksLikeImage(bytes: Uint8Array): boolean {
     (ascii(4, 8) === 'ftyp' && HEIF_BRANDS.includes(ascii(8, 12)))
   );
 }
+
+/**
+ * Random v4-style UUID for storage file names. Pure JS (no native module, so it works in Expo Go);
+ * names only need to be unique, not unguessable, because the bucket is private.
+ */
+export function photoFileId(random: () => number = Math.random): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.floor(random() * 16);
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}

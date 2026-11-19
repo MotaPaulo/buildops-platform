@@ -1,5 +1,4 @@
-import { base64ToBytes, looksLikeImage } from '@buildops/shared';
-import { randomUUID } from 'expo-crypto';
+import { base64ToBytes, looksLikeImage, photoFileId } from '@buildops/shared';
 import * as ImagePicker from 'expo-image-picker';
 
 import { supabase } from './supabase';
@@ -35,7 +34,7 @@ export async function uploadMovementPhoto(companyId: string, photo: PickedPhoto)
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const ext = EXTENSIONS[photo.mimeType] ?? 'jpg';
-  const path = `${companyId}/${now.getFullYear()}/${month}/${randomUUID()}.${ext}`;
+  const path = `${companyId}/${now.getFullYear()}/${month}/${photoFileId()}.${ext}`;
 
   const body = base64ToBytes(photo.base64);
   if (!looksLikeImage(body)) throw new Error('O arquivo escolhido não é uma imagem válida.');

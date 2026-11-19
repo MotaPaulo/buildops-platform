@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { base64ToBytes, looksLikeImage } from './images';
+import { base64ToBytes, looksLikeImage, photoFileId } from './images';
 
 const b64 = (bytes: number[] | string) =>
   Buffer.from(typeof bytes === 'string' ? bytes : Uint8Array.from(bytes)).toString('base64');
@@ -34,4 +34,12 @@ describe('looksLikeImage', () => {
     ['QuickTime video', ftyp('qt  ')],
     ['empty', []],
   ])('rejects %s', (_, bytes) => expect(looksLikeImage(Uint8Array.from(bytes))).toBe(false));
+});
+
+describe('photoFileId', () => {
+  it('returns a v4-shaped UUID and differs between calls', () => {
+    const id = photoFileId();
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(photoFileId()).not.toBe(id);
+  });
 });
