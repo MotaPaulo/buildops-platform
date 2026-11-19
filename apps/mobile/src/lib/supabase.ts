@@ -7,7 +7,7 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
 if (!url || !key) {
-  throw new Error('Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_KEY em apps/mobile/.env');
+  throw new Error('Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY in apps/mobile/.env');
 }
 
 export const supabase = createClient(url, key, {
@@ -19,7 +19,7 @@ export const supabase = createClient(url, key, {
   },
 });
 
-// No celular, renova o token só com o app em primeiro plano.
+// On mobile, refresh the token only while the app is in the foreground.
 if (Platform.OS !== 'web') {
   AppState.addEventListener('change', (state) => {
     if (state === 'active') supabase.auth.startAutoRefresh();

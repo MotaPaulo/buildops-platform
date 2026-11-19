@@ -1,4 +1,4 @@
-# dependências
+# dependencies
 node_modules/
 
 # Expo / React Native
@@ -14,16 +14,16 @@ android/
 *.key
 *.mobileprovision
 
-# ambiente
+# environment
 .env
 .env.*
 !.env.example
 
-# Supabase local
+# local Supabase
 supabase/.branches/
 supabase/.temp/
 
-# sistema / editor
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/*

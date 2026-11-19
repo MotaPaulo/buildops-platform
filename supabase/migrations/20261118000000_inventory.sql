@@ -1,44 +1,46 @@
 -- =============================================================================
--- Etapa 1 · Controle de estoque
+-- Stage 1 · Inventory control
 --
--- Modelo:
---   companies ─┬─ cost_centers ── sites (obras)
---              └─ warehouses (depósitos, opcionalmente ligados a uma obra)
---   materials (catálogo único do grupo)
---   stock_movements: livro-razão imutável de entradas, saídas, transferências e ajustes
---   transfers: agrupa o par saída/entrada de uma transferência e registra quem autorizou
+-- Model:
+--   companies ─┬─ cost_centers ── sites (job sites)
+--              └─ warehouses (optionally tied to a site)
+--   materials (single catalog for the whole group)
+--   stock_movements: immutable ledger of receipts, issues, transfers and adjustments
+--   transfers: groups the out/in pair of a transfer and records who authorized it
 --
--- O saldo físico é sempre calculado a partir das movimentações (por depósito e material).
--- O centro de custo de cada movimentação define a quem a entrada ou o consumo é apropriado.
+-- Physical balance is always computed from movements (per warehouse and material).
+-- Each movement's cost center says who the receipt or consumption is charged to.
+--
+-- Error messages raised here are shown in the app, so they are in Brazilian Portuguese.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tipos
+-- Types
 -- -----------------------------------------------------------------------------
 
 create type public.app_role as enum (
-  'director',     -- diretoria: vê e opera todo o grupo
-  'manager',      -- gestor: administra sua empresa ou centro de custo
-  'storekeeper',  -- almoxarife: entradas, saídas e cadastros de estoque
-  'foreman'       -- mestre de obras: registra saídas (consumo) na obra
+  'director',     -- sees and operates the whole group
+  'manager',      -- runs their company or cost center
+  'storekeeper',  -- receipts, issues and inventory master data
+  'foreman'       -- records issues (consumption) on site
 );
 
 create type public.movement_kind as enum (
-  'in',            -- entrada (compra, devolução)
-  'out',           -- saída (consumo na obra)
-  'transfer_out',  -- saída por transferência
-  'transfer_in',   -- entrada por transferência
-  'adjustment'     -- ajuste de inventário (quantidade com sinal)
+  'in',            -- receipt (purchase, return)
+  'out',           -- issue (consumption on site)
+  'transfer_out',  -- outgoing side of a transfer
+  'transfer_in',   -- incoming side of a transfer
+  'adjustment'     -- inventory adjustment (signed quantity)
 );
 
 create type public.record_source as enum (
-  'app',          -- registrado no aplicativo
-  'integration',  -- lido de um sistema legado
-  'import'        -- importado de planilha
+  'app',          -- recorded in the app
+  'integration',  -- read from a legacy system
+  'import'        -- imported from a spreadsheet
 );
 
 -- -----------------------------------------------------------------------------
--- Estrutura organizacional
+-- Organization
 -- -----------------------------------------------------------------------------
 
 create table public.companies (
@@ -57,7 +59,7 @@ create table public.cost_centers (
   active     boolean not null default true,
   created_at timestamptz not null default now(),
   unique (company_id, code),
-  unique (id, company_id)                 -- alvo das FKs compostas
+  unique (id, company_id)                 -- target of composite FKs
 );
 
 create table public.sites (
@@ -83,7 +85,7 @@ create table public.warehouses (
 );
 
 -- -----------------------------------------------------------------------------
--- Usuários e permissões
+-- Users and permissions
 -- -----------------------------------------------------------------------------
 
 create table public.profiles (
@@ -92,8 +94,8 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 
--- Um usuário pode ter vários vínculos. Diretoria não precisa de empresa.
--- Sem cost_center_id, o vínculo vale para a empresa inteira.
+-- A user can have several memberships. Directors don't need a company.
+-- Without cost_center_id, the membership covers the whole company.
 create table public.memberships (
   id             uuid primary key default gen_random_uuid(),
   user_id        uuid not null references public.profiles (id) on delete cascade,
@@ -108,7 +110,7 @@ create table public.memberships (
 create index memberships_user_idx on public.memberships (user_id);
 
 -- -----------------------------------------------------------------------------
--- Catálogo
+-- Catalog
 -- -----------------------------------------------------------------------------
 
 create table public.materials (
@@ -129,7 +131,7 @@ create table public.stock_minimums (
 );
 
 -- -----------------------------------------------------------------------------
--- Movimentações
+-- Movements
 -- -----------------------------------------------------------------------------
 
 create table public.transfers (
@@ -157,7 +159,7 @@ create table public.stock_movements (
   unit_cost      numeric(14, 4) check (unit_cost >= 0),
   transfer_id    uuid references public.transfers (id),
   invoice_number text,
-  photo_path     text,                    -- caminho no bucket movement-photos
+  photo_path     text,                    -- path in the movement-photos bucket
   notes          text,
   source         public.record_source not null default 'app',
   external_system text,
@@ -166,21 +168,21 @@ create table public.stock_movements (
   created_by     uuid references public.profiles (id) default auth.uid(),
   created_at     timestamptz not null default now(),
 
-  -- depósito e centro de custo precisam ser da mesma empresa da movimentação
+  -- warehouse and cost center must belong to the movement's company
   foreign key (warehouse_id, company_id)   references public.warehouses (id, company_id),
   foreign key (cost_center_id, company_id) references public.cost_centers (id, company_id),
 
   check (case when kind = 'adjustment' then quantity <> 0 else quantity > 0 end),
   check ((kind in ('transfer_in', 'transfer_out')) = (transfer_id is not null)),
   check (source = 'app' or external_system is not null),
-  unique (external_system, external_ref)  -- evita importar o mesmo registro duas vezes
+  unique (external_system, external_ref)  -- never import the same record twice
 );
 
 create index stock_movements_balance_idx on public.stock_movements (warehouse_id, material_id);
 create index stock_movements_cost_center_idx on public.stock_movements (cost_center_id, occurred_at desc);
 create index stock_movements_company_idx on public.stock_movements (company_id, occurred_at desc);
 
--- Quantidade com sinal: positiva aumenta o saldo, negativa reduz.
+-- Signed quantity: positive increases the balance, negative decreases it.
 create function public.signed_quantity(p_kind public.movement_kind, p_quantity numeric)
 returns numeric
 language sql
@@ -191,7 +193,7 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- Funções de permissão (usadas pelas políticas RLS)
+-- Permission functions (used by the RLS policies)
 -- -----------------------------------------------------------------------------
 
 create function public.is_director()
@@ -241,7 +243,7 @@ as $$
   );
 $$;
 
--- Verdadeiro se o usuário tem um dos papéis na empresa (diretoria sempre tem).
+-- True if the user has one of the roles in the company (directors always do).
 create function public.has_role_in_company(p_company_id uuid, p_roles public.app_role[])
 returns boolean
 language sql
@@ -256,7 +258,7 @@ as $$
   );
 $$;
 
--- Quem pode registrar cada tipo de movimentação manual no app.
+-- Who can record each kind of manual movement in the app.
 create function public.can_register_movement(
   p_company_id uuid,
   p_cost_center_id uuid,
@@ -273,16 +275,16 @@ as $$
            when 'in'         then public.has_role_in_company(p_company_id, '{manager,storekeeper}')
            when 'out'        then public.has_role_in_company(p_company_id, '{manager,storekeeper,foreman}')
            when 'adjustment' then public.has_role_in_company(p_company_id, '{manager}')
-           else false  -- transferências só via create_transfer()
+           else false  -- transfers only through create_transfer()
          end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- Regras de integridade
+-- Integrity rules
 -- -----------------------------------------------------------------------------
 
--- Bloqueia saída maior que o saldo físico do depósito.
--- O lock por (depósito, material) evita que duas saídas simultâneas furem o saldo.
+-- Blocks any issue larger than the warehouse's physical balance.
+-- The lock per (warehouse, material) prevents two concurrent issues from overdrawing the balance.
 create function public.prevent_negative_stock()
 returns trigger
 language plpgsql
@@ -320,7 +322,7 @@ create trigger stock_movements_prevent_negative
   before insert on public.stock_movements
   for each row execute function public.prevent_negative_stock();
 
--- Cria o perfil quando um usuário é cadastrado no Supabase Auth.
+-- Creates the profile when a user signs up in Supabase Auth.
 create function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -339,12 +341,12 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- -----------------------------------------------------------------------------
--- Operações (RPC)
+-- Operations (RPC)
 -- -----------------------------------------------------------------------------
 
--- Transferência entre depósitos, obras ou empresas.
--- Dentro da mesma empresa: gestor da empresa autoriza. Entre empresas: só a diretoria.
--- Quem chama a função fica registrado como quem autorizou.
+-- Transfer between warehouses, sites or companies.
+-- Within a company: the company's manager authorizes. Between companies: directors only.
+-- The caller is recorded as the authorizer.
 create function public.create_transfer(
   p_material_id uuid,
   p_from_warehouse_id uuid,
@@ -398,9 +400,9 @@ begin
 end;
 $$;
 
--- Saldo físico por depósito e material, com estoque mínimo e alerta.
--- Calcula sobre todas as movimentações do depósito (inclusive de centros de custo
--- que o usuário não vê), mas só retorna depósitos das empresas que ele acessa.
+-- Physical balance per warehouse and material, with minimum stock and alert.
+-- Computed over all of the warehouse's movements (including cost centers the user can't see),
+-- but only returns warehouses of companies the user has access to.
 create function public.get_stock_balances(p_company_id uuid default null)
 returns table (
   company_id       uuid,
@@ -448,7 +450,7 @@ as $$
   order by w.name, mat.name;
 $$;
 
--- Funções expostas só a usuários autenticados.
+-- Functions exposed only to authenticated users.
 revoke execute on function public.create_transfer(uuid, uuid, uuid, uuid, uuid, numeric, text) from public, anon;
 revoke execute on function public.get_stock_balances(uuid) from public, anon;
 grant execute on function public.create_transfer(uuid, uuid, uuid, uuid, uuid, numeric, text) to authenticated;
@@ -469,13 +471,13 @@ alter table public.stock_minimums  enable row level security;
 alter table public.transfers       enable row level security;
 alter table public.stock_movements enable row level security;
 
--- Empresas: cada um vê as suas; só a diretoria cadastra.
+-- Companies: each user sees their own; only directors create them.
 create policy companies_select on public.companies
   for select to authenticated using (public.has_company_access(id));
 create policy companies_write on public.companies
   for all to authenticated using (public.is_director()) with check (public.is_director());
 
--- Centros de custo, obras e depósitos: leitura por empresa; gestor administra.
+-- Cost centers, sites and warehouses: read by company; managers administer.
 create policy cost_centers_select on public.cost_centers
   for select to authenticated using (public.has_company_access(company_id));
 create policy cost_centers_write on public.cost_centers
@@ -497,21 +499,21 @@ create policy warehouses_write on public.warehouses
   using (public.has_role_in_company(company_id, '{manager,storekeeper}'))
   with check (public.has_role_in_company(company_id, '{manager,storekeeper}'));
 
--- Perfis: nomes visíveis para todos (aparecem em "registrado por" e "autorizado por").
+-- Profiles: names are visible to everyone (shown as "recorded by" and "authorized by").
 create policy profiles_select on public.profiles
   for select to authenticated using (true);
 create policy profiles_update_own on public.profiles
   for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
--- Vínculos: cada um vê os seus; diretoria vê e administra todos.
+-- Memberships: each user sees their own; directors see and manage all.
 create policy memberships_select on public.memberships
   for select to authenticated
   using (user_id = (select auth.uid()) or public.is_director());
 create policy memberships_write on public.memberships
   for all to authenticated using (public.is_director()) with check (public.is_director());
 
--- Materiais: catálogo único do grupo.
+-- Materials: single catalog for the group.
 create policy materials_select on public.materials
   for select to authenticated using (true);
 create policy materials_insert on public.materials
@@ -529,7 +531,7 @@ create policy materials_update on public.materials
       and m.role in ('director', 'manager', 'storekeeper')
   ));
 
--- Estoque mínimo: por depósito.
+-- Minimum stock: per warehouse.
 create policy stock_minimums_select on public.stock_minimums
   for select to authenticated
   using (exists (
@@ -549,13 +551,13 @@ create policy stock_minimums_write on public.stock_minimums
       and public.has_role_in_company(w.company_id, '{manager,storekeeper}')
   ));
 
--- Transferências: leitura para quem acessa a origem ou o destino. Escrita só via create_transfer().
+-- Transfers: readable by anyone with access to the source or destination. Written only via create_transfer().
 create policy transfers_select on public.transfers
   for select to authenticated
   using (public.has_cost_center_access(from_cost_center_id)
       or public.has_cost_center_access(to_cost_center_id));
 
--- Movimentações: imutáveis. Correções são feitas com novo lançamento de ajuste.
+-- Movements: immutable. Corrections are made with a new adjustment entry.
 create policy stock_movements_select on public.stock_movements
   for select to authenticated
   using (public.has_cost_center_access(cost_center_id));
@@ -568,8 +570,8 @@ create policy stock_movements_insert on public.stock_movements
   );
 
 -- -----------------------------------------------------------------------------
--- Storage: fotos de nota fiscal e de material
--- Caminho dos arquivos: {company_id}/{yyyy}/{mm}/{uuid}.jpg
+-- Storage: invoice and material photos
+-- File path: {company_id}/{yyyy}/{mm}/{uuid}.jpg
 -- -----------------------------------------------------------------------------
 
 insert into storage.buckets (id, name, public)

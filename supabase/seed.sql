@@ -1,5 +1,6 @@
--- Dados fictícios para desenvolvimento local (`supabase db reset`).
--- Usuários são criados pelo Supabase Auth; depois, vincule-os em public.memberships.
+-- Fictional data for local development (`supabase db reset`).
+-- Company, site and material names are in Portuguese, as they would be in production.
+-- Users are created through Supabase Auth (`pnpm db:users`), which also links them in public.memberships.
 
 insert into public.companies (id, name) values
   ('00000000-0000-0000-0000-000000000001', 'Construtora Exemplo'),

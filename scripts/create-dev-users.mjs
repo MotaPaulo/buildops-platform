@@ -1,5 +1,5 @@
-// Cria usuários de teste no Supabase LOCAL, um por perfil, vinculados às empresas do seed.
-// Uso: pnpm db:users   (depois de pnpm db:start / pnpm db:reset)
+// Creates test users in LOCAL Supabase, one per role, linked to the seed companies.
+// Usage: pnpm db:users   (after pnpm db:start / pnpm db:reset)
 import { execSync } from 'node:child_process';
 
 const status = JSON.parse(execSync('supabase status -o json', { encoding: 'utf8' }));
@@ -7,7 +7,7 @@ const url = status.API_URL;
 const key = status.SECRET_KEY ?? status.SERVICE_ROLE_KEY;
 
 if (!url?.startsWith('http://127.0.0.1')) {
-  throw new Error(`Recusando rodar fora do ambiente local: ${url}`);
+  throw new Error(`Refusing to run outside the local environment: ${url}`);
 }
 
 const PASSWORD = 'buildops123';
@@ -38,7 +38,7 @@ for (const u of users) {
   });
 
   if (!created.ok) {
-    console.log(`- ${u.email}: já existe ou falhou (${created.status})`);
+    console.log(`- ${u.email}: already exists or failed (${created.status})`);
     continue;
   }
 
@@ -48,9 +48,9 @@ for (const u of users) {
     company_id: u.company_id ?? null,
     cost_center_id: u.cost_center_id ?? null,
   });
-  if (!membership.ok) throw new Error(`Vínculo de ${u.email}: ${JSON.stringify(membership.data)}`);
+  if (!membership.ok) throw new Error(`Membership for ${u.email}: ${JSON.stringify(membership.data)}`);
 
   console.log(`+ ${u.email} (${u.role})`);
 }
 
-console.log(`\nSenha de todos: ${PASSWORD}`);
+console.log(`\nPassword for all users: ${PASSWORD}`);

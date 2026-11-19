@@ -60,8 +60,8 @@ supabase/
   migrations/        Database schema (versioned SQL)
   seed.sql           Sample data for development
 docs/
-  arquitetura.md     Architecture overview and technical decisions
-  estoque.md         Inventory module scope and rules
+  architecture.md    Architecture overview, technical decisions and glossary
+  inventory.md       Inventory module scope and rules
 ```
 
 ## Getting started
@@ -84,7 +84,10 @@ pnpm dev                  # QR code for Expo Go; press "w" to open in the browse
 
 When upgrading the Expo SDK, run `pnpm --filter mobile exec expo install --fix` to align dependencies.
 
-## Documentation (Portuguese)
+## Documentation
 
-- [Architecture](docs/arquitetura.md)
-- [Inventory module](docs/estoque.md)
+- [Architecture](docs/architecture.md)
+- [Inventory module](docs/inventory.md)
+
+Code, documentation and commit messages are in English. The app's on-screen text is in Brazilian
+Portuguese for its end users; see the glossary in the architecture doc.

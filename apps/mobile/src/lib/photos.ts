@@ -9,7 +9,7 @@ export type PickedPhoto = { uri: string; mimeType: string };
 
 const OPTIONS: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.6 };
 
-/** Abre a câmera ou a galeria. Retorna null se o usuário cancelar ou negar a permissão. */
+/** Opens the camera or the photo library. Returns null if the user cancels. Throws if camera access is denied. */
 export async function pickPhoto(source: 'camera' | 'library'): Promise<PickedPhoto | null> {
   if (source === 'camera') {
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
@@ -26,7 +26,7 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<PickedPho
 
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic' };
 
-/** Envia a foto para {company_id}/{ano}/{mês}/{uuid}.jpg e retorna o caminho no bucket. */
+/** Uploads the photo to {company_id}/{year}/{month}/{uuid}.jpg and returns its bucket path. */
 export async function uploadMovementPhoto(companyId: string, photo: PickedPhoto): Promise<string> {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');

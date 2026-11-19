@@ -1,7 +1,7 @@
--- O app envia a foto antes de gravar a movimentação. Se o banco recusar o lançamento
--- (saldo insuficiente, permissão), o app apaga a foto para não deixar arquivo órfão.
--- Só quem enviou pode apagar, e só enquanto nenhuma movimentação aponta para a foto:
--- foto anexada a um lançamento é tão imutável quanto o próprio histórico.
+-- The app uploads the photo before inserting the movement. If the database rejects the movement
+-- (insufficient balance, permission), the app deletes the photo so no orphan file is left behind.
+-- Only the uploader can delete, and only while no movement references the photo:
+-- a photo attached to a movement is as immutable as the movement history itself.
 
 create policy movement_photos_delete_unused on storage.objects
   for delete to authenticated

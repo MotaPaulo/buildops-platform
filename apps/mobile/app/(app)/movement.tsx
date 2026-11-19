@@ -83,7 +83,7 @@ export default function NewMovementScreen() {
     });
   }, []);
 
-  // Tipos que o perfil pode lançar em algum centro de custo.
+  // Kinds the user can record in at least one cost center.
   const allowedKinds = useMemo(
     () =>
       memberships
@@ -96,7 +96,7 @@ export default function NewMovementScreen() {
     if (!kind && allowedKinds.length) setKind(allowedKinds.includes('out') ? 'out' : (allowedKinds[0] ?? null));
   }, [allowedKinds, kind]);
 
-  // Centros de custo onde o tipo escolhido é permitido.
+  // Cost centers where the selected kind is allowed.
   const allowedCostCenters = useMemo(
     () => (memberships && kind ? costCenters.filter((cc) => canRegisterMovement(memberships, kind, cc)) : []),
     [memberships, kind, costCenters],
@@ -113,7 +113,7 @@ export default function NewMovementScreen() {
     [warehouse, allowedCostCenters],
   );
 
-  // Depósito de canteiro já sugere o centro de custo da obra.
+  // A site warehouse pre-selects that site's cost center.
   useEffect(() => {
     if (costCenterId && costCenterOptions.some((cc) => cc.id === costCenterId)) return;
     const siteCc = sites.find((s) => s.id === warehouse?.site_id)?.cost_center_id;
@@ -190,7 +190,7 @@ export default function NewMovementScreen() {
 
       router.back();
     } catch (e) {
-      // Lançamento recusado: não deixa foto órfã no bucket.
+      // Movement rejected: don't leave an orphan photo in the bucket.
       if (photoPath) await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
       setFormError((e as Error).message);
       setSaving(false);

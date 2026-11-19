@@ -2,5 +2,5 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# React Native funciona melhor com node_modules sem symlinks
+# React Native works best with a flat, non-symlinked node_modules
 nodeLinker: hoisted

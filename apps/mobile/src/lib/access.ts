@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from './auth';
 import { supabase } from './supabase';
 
-/** Vínculos do usuário logado. A RLS só devolve os do próprio usuário (ou todos, para a diretoria). */
+/** The signed-in user's memberships. RLS returns only the user's own (or all of them, for directors). */
 export function useMemberships() {
   const { session } = useAuth();
   const userId = session?.user.id;

@@ -23,7 +23,7 @@ export default function StockBalancesScreen() {
     setRefreshing(false);
   }, []);
 
-  // Recarrega ao voltar de um lançamento.
+  // Reload when returning from the movement form.
   useFocusEffect(
     useCallback(() => {
       load();
