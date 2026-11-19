@@ -33,22 +33,23 @@ docs/
 
 ## Como rodar
 
-Pré-requisitos: Node.js 20+, pnpm 9+, Docker (para o Supabase local) e Supabase CLI.
+Pré-requisitos: Node.js 20+, pnpm 12+ e Docker Desktop (para o Supabase local).
+O Supabase CLI vem como dependência do projeto e roda via `pnpm supabase`.
 
 ```bash
 pnpm install
 
 # banco local com schema e dados de exemplo
-supabase init        # só na primeira vez; mantém as migrations existentes
-supabase start
-supabase db reset
+pnpm supabase init        # só na primeira vez; mantém as migrations existentes
+pnpm db:start
+pnpm db:reset
 
 # app
-cp apps/mobile/.env.example apps/mobile/.env   # preencha com a URL e a chave do `supabase status`
-pnpm dev
+cp apps/mobile/.env.example apps/mobile/.env   # preencha com a URL e a chave do `pnpm supabase status`
+pnpm dev                  # QR code para o Expo Go; tecle "w" para abrir no navegador
 ```
 
-Na primeira instalação, rode `pnpm --filter mobile exec expo install --fix` para alinhar as dependências à versão atual do Expo SDK.
+Ao atualizar o Expo SDK, rode `pnpm --filter mobile exec expo install --fix` para alinhar as dependências.
 
 ## Documentação
 
