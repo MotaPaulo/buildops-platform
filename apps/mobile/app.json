@@ -19,7 +19,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O BuildOps usa a câmera para fotografar notas fiscais e materiais.",
+          "photosPermission": "O BuildOps usa suas fotos para anexar notas fiscais e materiais.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

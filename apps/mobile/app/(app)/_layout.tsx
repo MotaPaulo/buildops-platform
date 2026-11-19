@@ -8,13 +8,14 @@ export default function AppLayout() {
     <Stack
       screenOptions={{
         headerRight: () => (
-          <Pressable onPress={() => supabase.auth.signOut()} hitSlop={8}>
+          <Pressable onPress={() => supabase.auth.signOut()} hitSlop={8} style={{ paddingHorizontal: 12 }}>
             <Text>Sair</Text>
           </Pressable>
         ),
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Saldo de estoque' }} />
+      <Stack.Screen name="movement" options={{ title: 'Nova movimentação', headerRight: undefined }} />
     </Stack>
   );
 }

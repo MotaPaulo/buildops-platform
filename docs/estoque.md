@@ -12,7 +12,7 @@ Estoque de entrada e saída, separado por empresa e centro de custo, com visão 
 - [x] Bucket de fotos de nota e material
 - [x] App: login e tela de saldos
 - [ ] Cadastros de materiais, depósitos e obras no app
-- [ ] Entrada e saída pelo celular, com foto da nota ou do material
+- [x] Entrada, saída e ajuste pelo celular, com foto da nota ou do material
 - [ ] Tela de transferência
 - [ ] Saldos por obra, centro de custo e consolidado do grupo
 - [ ] Painel web com filtros e exportação para Excel
@@ -33,6 +33,17 @@ Estoque de entrada e saída, separado por empresa e centro de custo, com visão 
    ligadas ao mesmo registro em `transfers`. Na mesma empresa, quem autoriza é o gestor;
    entre empresas, a diretoria.
 6. **Dados importados não se duplicam.** O par `external_system` + `external_ref` é único.
+
+## Lançamento no app
+
+A tela "Nova movimentação" só oferece os tipos, depósitos e centros de custo que o perfil pode usar
+(regras espelhadas de `can_register_movement` em `packages/shared`). O banco continua sendo quem decide.
+
+- Depósito de canteiro já sugere o centro de custo da obra.
+- Quantidades no padrão brasileiro: `1.500` = mil e quinhentos, `2,5` = dois e meio. A tela mostra
+  o valor interpretado antes de salvar.
+- A foto é enviada antes do lançamento. Se o banco recusar o lançamento, a foto é apagada.
+- Tocar num saldo abre o lançamento já com depósito e material preenchidos.
 
 ## Fotos
 
