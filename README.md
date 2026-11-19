@@ -58,6 +58,8 @@ packages/
   shared/            Shared types and domain rules
 supabase/
   migrations/        Database schema (versioned SQL)
+  functions/         Edge Functions (admin-users: create and block accounts)
+  tests/             Database tests (pgTAP)
   seed.sql           Sample data for development
 docs/
   architecture.md    Architecture overview, technical decisions and glossary
@@ -86,7 +88,20 @@ After pulling new migrations into an existing local database, apply them without
 with `pnpm supabase migration up`, then run `pnpm db:users` again: it only creates the test users
 that are missing.
 
-Tests: `pnpm test` (shared logic) and `pnpm db:test` (database rules, needs the local stack running).
+Changes to `supabase/config.toml` (such as closing public sign-up for user management) only take
+effect after restarting the stack: `pnpm supabase stop` then `pnpm db:start`. This keeps your local
+data; never add `--no-backup` to `stop`. The restart also starts the Edge Functions runtime that
+serves `supabase/functions/admin-users`.
+
+### User management
+
+Public sign-up is disabled. Directors create users in the app under Cadastros > Usuários, with an
+initial password the user must change on first login; they also grant and remove access and block
+or unblock logins. See [User management](docs/inventory.md#user-management).
+
+Tests: `pnpm test` (shared logic), `pnpm db:test` (database rules) and `pnpm test:functions` (the
+admin-users Edge Function). The last two need the local stack running; `test:functions` also needs
+`pnpm db:users`.
 
 To test on a phone with Expo Go, set `EXPO_PUBLIC_SUPABASE_URL` in `apps/mobile/.env` to the
 computer's LAN IP (e.g. `http://192.168.1.9:54321`) instead of `127.0.0.1`, and keep the Wi-Fi
@@ -102,7 +117,7 @@ All with password `buildops123`. Companies and cost centers come from `supabase/
 
 | Email | Role | Scope | What to try |
 | --- | --- | --- | --- |
-| `diretoria@buildops.test` | Director | Whole group | Everything, including transfers between companies and the "Empresa" balance view |
+| `diretoria@buildops.test` | Director | Whole group | Everything, including transfers between companies, the "Empresa" balance view and user management |
 | `gestor@buildops.test` | Manager | Construtora Exemplo | Adjustments, transfers within the company, sites and cost centers |
 | `gestor.jardim@buildops.test` | Manager | Construtora Exemplo, OB-001 only | Can't move stock charged to other cost centers |
 | `almox@buildops.test` | Storekeeper | Construtora Exemplo | Receipts and issues, materials, warehouses and minimum stock; no transfers or cost centers |

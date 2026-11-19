@@ -68,6 +68,30 @@ that company.
 RLS hides rows a user can't change, so an `update` that matches no rows is a denial, not an error.
 The forms check the number of rows returned and report it.
 
+## User management
+
+"Usuários" in Cadastros, shown only to directors. Public sign-up is closed (`enable_signup = false`):
+accounts exist only because a director created them.
+
+| Piece | What it does |
+| --- | --- |
+| `list_users()` | Security definer RPC, directors only (`42501` otherwise): id, e-mail, name, blocked flag, last sign-in and memberships as JSON. The app can't read `auth.users`. |
+| `admin-users` Edge Function | `POST {action: 'create' \| 'block' \| 'unblock', ...}`. Identifies the caller from their JWT and asks `is_director()` under the caller's token before using the service-role key, which never leaves the function. |
+| `memberships` | Written directly by the app under the existing director-only RLS policies. |
+| `memberships_keep_one_director` trigger | Rejects deleting or demoting the last director membership of an unblocked user: "É preciso manter ao menos um diretor." |
+
+- **Create:** name, e-mail, an initial password (8+ characters) and the first access. The account is
+  created already confirmed, with `must_change_password` in its metadata, so the first login opens
+  "Trocar senha" before anything else. A repeated e-mail returns "Já existe um usuário com este e-mail."
+- **Access:** each user can have several memberships. Directors cover the whole group; every other
+  role needs a company and, optionally, one of its cost centers. Removing a user's last membership
+  leaves them with the "sem acesso" message on their next session.
+- **Block:** "Bloquear acesso" bans the account (`ban_duration: '876000h'`), so login fails with
+  "Usuário bloqueado."; "Desbloquear" lifts the ban and the old password works again. Directors can't
+  block themselves or the last active director.
+- Users and profiles are never deleted, because movements and transfers reference them.
+- Managers don't manage users. There is no password reset by e-mail and no SSO yet.
+
 ## Recording movements in the app
 
 The "Nova movimentação" (new movement) screen only offers the kinds, warehouses and cost centers the
@@ -140,7 +164,8 @@ after 10 minutes.
   that mirror the SQL functions, Brazilian number parsing and the photo checks.
 - `pnpm db:test`: database tests in `supabase/tests` (pgTAP), run against the local stack inside
   rolled-back transactions: transfer permissions and inputs, master-data integrity rules, balances
-  and cost-center visibility.
+  and cost-center visibility, and user management (`list_users` is director-only, managers can't
+  write memberships, the last director can't be removed).
 
 ## To validate in Stage 0
 

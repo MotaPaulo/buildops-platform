@@ -36,6 +36,12 @@ const SECTIONS: { kind: MasterDataKind; title: string; description: string; href
     description: 'Quantidade mínima de cada material por depósito, para o alerta de falta.',
     href: '/master-data/minimums',
   },
+  {
+    kind: 'users',
+    title: 'Usuários',
+    description: 'Contas de acesso, perfis por empresa e centro de custo, e bloqueio de login.',
+    href: '/master-data/users',
+  },
 ];
 
 export default function MasterDataScreen() {

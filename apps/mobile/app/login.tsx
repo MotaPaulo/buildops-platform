@@ -13,7 +13,7 @@ export default function LoginScreen() {
     setBusy(true);
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) setError('E-mail ou senha inválidos.');
+    if (error) setError(error.code === 'user_banned' ? 'Usuário bloqueado.' : 'E-mail ou senha inválidos.');
     setBusy(false);
   }
 

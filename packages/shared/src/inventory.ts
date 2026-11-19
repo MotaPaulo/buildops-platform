@@ -184,6 +184,8 @@ export const MASTER_DATA_ROLES = {
   sites: ['manager'],
   costCenters: ['manager'],
   minimums: ['manager', 'storekeeper'],
+  /** Users and their memberships: directors only. */
+  users: [],
 } as const satisfies Record<string, readonly AppRole[]>;
 
 export type MasterDataKind = keyof typeof MASTER_DATA_ROLES;
