@@ -227,14 +227,19 @@ export interface StockBalance {
 // Balance views
 // -----------------------------------------------------------------------------
 
-/** How the balances screen groups warehouse balances. */
-export const BALANCE_VIEWS = ['warehouse', 'site', 'company', 'group'] as const;
+/**
+ * How the balances screen groups stock. The first four group the physical balance (per warehouse);
+ * "costCenter" shows what each cost center has been charged with, from get_cost_center_balances.
+ */
+export const BALANCE_VIEWS = ['warehouse', 'site', 'costCenter', 'company', 'group'] as const;
 export type BalanceView = (typeof BALANCE_VIEWS)[number];
+export type PhysicalBalanceView = Exclude<BalanceView, 'costCenter'>;
 
 /** On-screen labels (pt-BR). */
 export const BALANCE_VIEW_LABELS: Record<BalanceView, string> = {
   warehouse: 'Depósito',
   site: 'Obra',
+  costCenter: 'Centro de custo',
   company: 'Empresa',
   group: 'Grupo',
 };
@@ -246,8 +251,9 @@ export interface BalanceGroupRow {
   quantity: number;
   /** Warehouses in this group where the material is below its minimum. */
   below_minimum_count: number;
-  /** Only in the warehouse view: the warehouse row it came from. */
+  /** Only in the warehouse view: the warehouse row it came from and its minimum. */
   warehouse_id?: string;
+  min_quantity?: number | null;
 }
 
 export interface BalanceGroup {
@@ -265,13 +271,20 @@ export interface BalanceGroupNames {
   group: string;
 }
 
+/** Quantities have 3 decimal places; rounding avoids 0.1 + 0.2 artifacts when summing. */
+const addQuantity = (a: number, b: number) => Math.round((a + b) * 1000) / 1000;
+
+const byMaterialName = (a: BalanceGroupRow, b: BalanceGroupRow) =>
+  a.material_name.localeCompare(b.material_name, 'pt-BR');
+
 /**
  * Groups physical balances (one row per warehouse and material) by warehouse, site, company or the
  * whole group, summing each material. Materials keep a single unit, so the sums are meaningful.
+ * Warehouses without a site come last in the site view.
  */
 export function groupBalances(
   balances: readonly StockBalance[],
-  view: BalanceView,
+  view: PhysicalBalanceView,
   names: BalanceGroupNames,
 ): BalanceGroup[] {
   const keyOf = (b: StockBalance): [string, string] => {
@@ -298,21 +311,49 @@ export function groupBalances(
       unit: b.unit,
       quantity: 0,
       below_minimum_count: 0,
-      ...(view === 'warehouse' && { warehouse_id: b.warehouse_id }),
+      ...(view === 'warehouse' && { warehouse_id: b.warehouse_id, min_quantity: b.min_quantity }),
     };
-    // Quantities have 3 decimal places; rounding avoids 0.1 + 0.2 artifacts.
-    row.quantity = Math.round((row.quantity + Number(b.quantity)) * 1000) / 1000;
+    row.quantity = addQuantity(row.quantity, Number(b.quantity));
     if (b.below_minimum) row.below_minimum_count++;
     group.rows.set(b.material_id, row);
   }
 
   return [...groups.entries()]
-    .map(([key, g]) => ({
-      key,
-      title: g.title,
-      rows: [...g.rows.values()].sort((a, b) => a.material_name.localeCompare(b.material_name, 'pt-BR')),
-    }))
-    .sort((a, b) =>
-      a.key === 'none' ? 1 : b.key === 'none' ? -1 : a.title.localeCompare(b.title, 'pt-BR'),
-    );
+    .map(([key, g]) => ({ key, title: g.title, rows: [...g.rows.values()].sort(byMaterialName) }))
+    .sort((a, b) => (a.key === 'none' ? 1 : b.key === 'none' ? -1 : a.title.localeCompare(b.title, 'pt-BR')));
+}
+
+/** Row returned by the get_cost_center_balances RPC. */
+export interface CostCenterBalance {
+  company_id: string;
+  cost_center_id: string;
+  cost_center_code: string;
+  cost_center_name: string;
+  material_id: string;
+  material_name: string;
+  unit: string;
+  quantity: number;
+}
+
+/** Groups the quantities charged to each cost center, ordered by cost center code. */
+export function groupCostCenterBalances(rows: readonly CostCenterBalance[]): BalanceGroup[] {
+  const groups = new Map<string, { code: string; title: string; rows: BalanceGroupRow[] }>();
+  for (const r of rows) {
+    const group = groups.get(r.cost_center_id) ?? {
+      code: r.cost_center_code,
+      title: `${r.cost_center_code} · ${r.cost_center_name}`,
+      rows: [],
+    };
+    groups.set(r.cost_center_id, group);
+    group.rows.push({
+      material_id: r.material_id,
+      material_name: r.material_name,
+      unit: r.unit,
+      quantity: addQuantity(0, Number(r.quantity)),
+      below_minimum_count: 0,
+    });
+  }
+  return [...groups.entries()]
+    .sort(([, a], [, b]) => a.code.localeCompare(b.code, 'pt-BR'))
+    .map(([key, g]) => ({ key, title: g.title, rows: g.rows.sort(byMaterialName) }));
 }

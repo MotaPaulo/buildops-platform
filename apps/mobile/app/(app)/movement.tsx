@@ -24,6 +24,7 @@ import {
 
 import { ACCENT, Chips, Field } from '@/components/form';
 import { useMemberships } from '@/lib/access';
+import { formatQty } from '@/lib/movements';
 import { pickPhoto, PHOTO_BUCKET, uploadMovementPhoto, type PickedPhoto } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
 
@@ -32,7 +33,6 @@ type CostCenter = { id: string; company_id: string; code: string; name: string }
 type Site = { id: string; cost_center_id: string };
 type Material = { id: string; sku: string | null; name: string; unit: string };
 
-const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 
 /** Extra option in the kind selector that opens the transfer screen. */
 const TRANSFER = 'transfer';

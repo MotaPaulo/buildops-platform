@@ -15,13 +15,13 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, Te
 import { Chips, Field, formStyles as s, friendlyDbError, PrimaryButton } from '@/components/form';
 import { useMemberships } from '@/lib/access';
 import { rows } from '@/lib/data';
+import { formatQty } from '@/lib/movements';
 import { supabase } from '@/lib/supabase';
 
 type Warehouse = { id: string; company_id: string; site_id: string | null; name: string };
 type Site = { id: string; cost_center_id: string };
 type Material = { id: string; name: string; unit: string };
 
-const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 const ccLabel = (cc: CostCenter) => `${cc.code} · ${cc.name}`;
 
 /** Keeps a cost center selection valid: the site's cost center, the only option, or nothing. */
@@ -128,6 +128,8 @@ export default function TransferScreen() {
   useEffect(() => {
     if (materialId && from && data && !stock) setMaterialId(null);
   }, [materialId, from, data, stock]);
+
+  useEffect(() => setQuantityText(''), [materialId]);
 
   // Destination: any other warehouse with a cost center the transfer can be authorized to.
   const toOptions = useMemo(

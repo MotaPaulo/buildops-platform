@@ -1,13 +1,16 @@
-import type { Material } from '@buildops/shared';
+import { canEditMasterData, type Material } from '@buildops/shared';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
-import { Fab, formStyles as s } from '@/components/form';
+import { Fab, formStyles as s, ReloadError } from '@/components/form';
+import { useMemberships } from '@/lib/access';
 import { rows, useFocusData } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 
 export default function MaterialsScreen() {
+  const { memberships } = useMemberships();
+  const canEdit = !!memberships && canEditMasterData(memberships, 'materials');
   const [query, setQuery] = useState('');
   const { data, error } = useFocusData(async () =>
     rows<Material[]>(await supabase.from('materials').select('id, sku, name, unit, category, active').order('name')),
@@ -29,12 +32,15 @@ export default function MaterialsScreen() {
         contentContainerStyle={s.list}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          <TextInput
-            style={s.input}
-            placeholder="Buscar por nome, código ou categoria"
-            value={query}
-            onChangeText={setQuery}
-          />
+          <>
+            <ReloadError error={error} hasData={!!data} />
+            <TextInput
+              style={s.input}
+              placeholder="Buscar por nome, código ou categoria"
+              value={query}
+              onChangeText={setQuery}
+            />
+          </>
         }
         ListEmptyComponent={
           <Text style={s.empty}>{error ?? (data ? 'Nenhum material encontrado.' : 'Carregando…')}</Text>
@@ -42,6 +48,7 @@ export default function MaterialsScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={[s.item, !item.active && s.itemInactive]}
+            disabled={!canEdit}
             onPress={() => router.push(`/master-data/materials/${item.id}`)}
           >
             <Text style={s.itemTitle}>{item.name}</Text>
@@ -52,7 +59,7 @@ export default function MaterialsScreen() {
           </Pressable>
         )}
       />
-      <Fab label="+ Novo material" onPress={() => router.push('/master-data/materials/new')} />
+      {canEdit && <Fab label="+ Novo material" onPress={() => router.push('/master-data/materials/new')} />}
     </View>
   );
 }

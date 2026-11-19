@@ -4,3 +4,7 @@ packages:
 
 # React Native works best with a flat, non-symlinked node_modules
 nodeLinker: hoisted
+
+# esbuild (used by vitest) downloads its platform binary in a postinstall script
+allowBuilds:
+  esbuild: true

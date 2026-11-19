@@ -5,17 +5,16 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 
 import { ACCENT, Chips, Field, formStyles as s, friendlyDbError, PrimaryButton } from '@/components/form';
 import { rows } from '@/lib/data';
+import { formatQty } from '@/lib/movements';
 import { supabase } from '@/lib/supabase';
 
-const formatQty = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
-
-type Line = { material: Pick<Material, 'id' | 'name' | 'unit'>; text: string; saved: number | null };
+type Line = { material: Pick<Material, 'id' | 'name' | 'unit' | 'active'>; text: string; saved: number | null };
 
 export default function WarehouseMinimumsScreen() {
   const { warehouseId } = useLocalSearchParams<{ warehouseId: string }>();
 
   const [warehouseName, setWarehouseName] = useState('');
-  const [materials, setMaterials] = useState<Pick<Material, 'id' | 'name' | 'unit' | 'sku'>[]>([]);
+  const [materials, setMaterials] = useState<Pick<Material, 'id' | 'name' | 'unit' | 'sku' | 'active'>[]>([]);
   const [balance, setBalance] = useState<Map<string, number>>(new Map());
   const [lines, setLines] = useState<Line[] | null>(null);
   const [query, setQuery] = useState('');
@@ -29,13 +28,13 @@ export default function WarehouseMinimumsScreen() {
       try {
         const [w, m, mins, b] = await Promise.all([
           supabase.from('warehouses').select('name').eq('id', warehouseId),
-          supabase.from('materials').select('id, name, unit, sku').eq('active', true).order('name'),
+          supabase.from('materials').select('id, name, unit, sku, active').order('name'),
           supabase.from('stock_minimums').select('warehouse_id, material_id, min_quantity').eq('warehouse_id', warehouseId),
           supabase.rpc('get_stock_balances'),
         ]);
         const [warehouse] = rows<{ name: string }[]>(w);
         if (!warehouse) throw new Error('Depósito não encontrado.');
-        const mats = rows<(Material & { sku: string | null })[]>(m);
+        const mats = rows<Material[]>(m);
         const all = new Map(mats.map((x) => [x.id, x]));
         setWarehouseName(warehouse.name);
         setMaterials(mats);
@@ -67,7 +66,7 @@ export default function WarehouseMinimumsScreen() {
     if (!q || !lines) return [];
     const used = new Set(lines.map((l) => l.material.id));
     return materials
-      .filter((m) => !used.has(m.id) && (m.name.toLowerCase().includes(q) || m.sku?.toLowerCase().includes(q)))
+      .filter((m) => m.active && !used.has(m.id) && (m.name.toLowerCase().includes(q) || m.sku?.toLowerCase().includes(q)))
       .slice(0, 8);
   }, [query, lines, materials]);
 
@@ -109,6 +108,8 @@ export default function WarehouseMinimumsScreen() {
           .select('material_id');
         if (res.error) throw res.error;
         if ((res.data?.length ?? 0) < upserts.length) throw new Error('Seu perfil não pode definir mínimos neste depósito.');
+        const saved = new Map(upserts.map((u) => [u.material_id, u.min_quantity]));
+        setLines((ls) => ls?.map((l) => (saved.has(l.material.id) ? { ...l, saved: saved.get(l.material.id)! } : l)) ?? null);
       }
       if (removed.length) {
         const res = await supabase
@@ -146,7 +147,10 @@ export default function WarehouseMinimumsScreen() {
           return (
             <View key={l.material.id} style={[styles.line, below && styles.lineAlert]}>
               <View style={s.flex}>
-                <Text style={s.itemTitle}>{l.material.name}</Text>
+                <Text style={s.itemTitle}>
+                  {l.material.name}
+                  {!l.material.active ? ' (inativo)' : ''}
+                </Text>
                 <Text style={[s.itemSub, below && styles.alert]}>
                   Saldo: {formatQty(current)} {l.material.unit}
                   {below ? ' · abaixo do mínimo' : ''}

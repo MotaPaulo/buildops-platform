@@ -16,7 +16,8 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 - [x] Receipts, issues and adjustments from the phone, with a photo of the invoice or material
 - [x] Transfer screen
 - [x] Movement history with filters, details and photos
-- [x] Balances by warehouse, site (with its cost center), company and group consolidated
+- [x] Balances by warehouse, site, company and group consolidated, plus the quantity charged to each cost center
+- [x] Automated tests: shared logic (vitest) and database rules (pgTAP)
 - [ ] Web dashboard with filters and Excel export
 - [ ] Reading data from current systems (depends on Stage 0)
 - [ ] User and membership management by the directors
@@ -40,11 +41,14 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 8. **A material's unit is fixed once it has movements.** Otherwise "40 sc" in the history would
    silently become "40 kg". To fix the catalog, create a new material and deactivate the old one.
 9. **Master data is deactivated, not deleted.** Inactive materials and warehouses, and finished sites,
-   stay in the history but no longer appear when recording movements.
+   stay in the history but no longer appear when recording movements. A warehouse or material can't
+   be deactivated while it still holds stock: transfer or issue it first, otherwise it would be stranded.
 10. **A cost center in use stays active.** It can't be deactivated while a site that isn't finished
-    charges to it. Codes are unique per company and stored uppercase.
+    charges to it, and a site can't be created or reopened on an inactive cost center. Transfers
+    reject inactive cost centers. Codes are unique per company and stored uppercase.
 11. **Minimums alert even without stock.** A material with a minimum in a warehouse shows up in the
-    balances (at zero) and is flagged, even if it was never received there.
+    balances (at zero) and is flagged, even if it was never received there. Inactive warehouses and
+    materials show up only while they hold stock, and never raise alerts.
 
 ## Master data in the app
 
@@ -56,7 +60,7 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 | Warehouses | director, manager and storekeeper of the company | Optionally tied to a site; choosing a site suggests the name "Canteiro {site}". |
 | Sites | director, manager of the company | Requires an active cost center. Creating a site can also create its site warehouse. |
 | Cost centers | director, manager of the company | Code (as used by finance) and name. Listed with the sites that charge to them. |
-| Minimum stock | director, manager and storekeeper of the company | Per warehouse: add materials, set or remove each minimum, saved together. The current balance is shown next to each one. |
+| Minimum stock | director, manager and storekeeper of the company | Per warehouse: add materials, set or remove each minimum, then save. The current balance is shown next to each one. Minimums of inactive materials are listed as "(inativo)" so they can be removed. If saving fails halfway, tapping save again repeats only what is missing. |
 
 The company of a warehouse or site can't change after it's created: its movements already belong to
 that company.
@@ -97,12 +101,13 @@ The physical balance is always per warehouse; the other views add warehouses up:
 | View | Groups by | Notes |
 | --- | --- | --- |
 | Depósito | Warehouse | Tapping a material opens a new movement for it. |
-| Obra | Site, labeled with its cost center code; warehouses without a site are grouped as "Almoxarifados" | Stands in for "balance by cost center" until Stage 0 decides whether stock is also tracked per cost center. |
+| Obra | Site, labeled with its cost center code; warehouses without a site are grouped as "Almoxarifados" | Physical stock at each site. |
+| Centro de custo | Cost center | Not a physical balance: the net quantity charged to each cost center (receipts − issues ± transfers) across all warehouses, from `get_cost_center_balances`. Two sites on one cost center, or a receipt charged to a cost center other than the site's, show up here. Only cost centers the user can access. |
 | Empresa | Company | Shown only to users with more than one company. |
 | Grupo | Everything the user can see | Group-wide consolidated balance. |
 
 In the summed views, a material is flagged with how many warehouses are below minimum, and tapping
-it opens its history.
+it opens its history. If a refresh fails, the last data stays on screen with a warning above it.
 
 ## Movement history
 
@@ -129,10 +134,18 @@ rejected unless the bytes look like a JPEG, PNG, WebP or HEIC image. The history
 shows a notice if a stored photo can't be displayed. It is shown through a signed URL that expires
 after 10 minutes.
 
+## Tests
+
+- `pnpm test`: unit tests of `packages/shared` (vitest): balance grouping, the permission helpers
+  that mirror the SQL functions, Brazilian number parsing and the photo checks.
+- `pnpm db:test`: database tests in `supabase/tests` (pgTAP), run against the local stack inside
+  rolled-back transactions: transfer permissions and inputs, master-data integrity rules, balances
+  and cost-center visibility.
+
 ## To validate in Stage 0
 
-- Whether balance should also be tracked per cost center (stock "reserved" for a site), in addition
-  to the warehouse's physical balance.
+- Whether the quantity charged to a cost center should become a tracked balance ("reserved" stock
+  for a site), in addition to the warehouse's physical balance.
 - The actual list of cost centers and sites for each company, with the finance team.
 - Units of measure and material categories used today in each system.
 - Whether the average material cost should be computed in the app or read from current systems.

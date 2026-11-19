@@ -40,7 +40,10 @@ export default function HistoryScreen() {
       .from('warehouses')
       .select('id, name')
       .order('name')
-      .then((r) => setWarehouses(rows(r)), () => {});
+      .then(
+        (r) => setWarehouses(rows(r)),
+        (e: Error) => setError(`Filtro de depósitos indisponível: ${e.message}`),
+      );
     if (params.materialId) {
       supabase
         .from('materials')
@@ -75,7 +78,11 @@ export default function HistoryScreen() {
       try {
         const page = rows<MovementRow[]>(await q);
         if (current !== requestId.current) return; // a newer filter replaced this request
-        setItems((prev) => (offset === 0 ? page : [...prev, ...page]));
+        setItems((prev) => {
+          if (offset === 0) return page;
+          const seen = new Set(prev.map((m) => m.id));
+          return [...prev, ...page.filter((m) => !seen.has(m.id))];
+        });
         setHasMore(page.length === PAGE);
       } catch (e) {
         if (current === requestId.current) setError((e as Error).message);
@@ -123,9 +130,12 @@ export default function HistoryScreen() {
       ListFooterComponent={
         items.length > 0 ? (
           hasMore ? (
-            <Pressable style={styles.more} onPress={() => load(items.length)} disabled={loading}>
-              {loading ? <ActivityIndicator color={ACCENT} /> : <Text style={s.link}>Carregar mais</Text>}
-            </Pressable>
+            <>
+              {error && <Text style={[s.error, styles.end]}>{error}</Text>}
+              <Pressable style={styles.more} onPress={() => load(items.length)} disabled={loading}>
+                {loading ? <ActivityIndicator color={ACCENT} /> : <Text style={s.link}>{error ? 'Tentar de novo' : 'Carregar mais'}</Text>}
+              </Pressable>
+            </>
           ) : (
             <Text style={[s.hint, styles.end]}>{error ?? 'Fim do histórico.'}</Text>
           )

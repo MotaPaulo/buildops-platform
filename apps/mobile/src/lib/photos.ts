@@ -1,3 +1,4 @@
+import { base64ToBytes, looksLikeImage } from '@buildops/shared';
 import { randomUUID } from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -25,25 +26,6 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<PickedPho
   if (!asset) return null;
   if (!asset.base64) throw new Error('Não foi possível ler a foto. Tente novamente.');
   return { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg', base64: asset.base64 };
-}
-
-/** Decodes base64 into bytes (atob is available in Hermes and browsers). */
-export function base64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64.replace(/^data:[^,]*,/, ''));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-/** True if the bytes start like a JPEG, PNG, WebP or HEIC file. Guards against uploading an error page. */
-export function looksLikeImage(bytes: Uint8Array): boolean {
-  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to));
-  return (
-    (bytes[0] === 0xff && bytes[1] === 0xd8) || // JPEG
-    (bytes[0] === 0x89 && ascii(1, 4) === 'PNG') ||
-    (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') ||
-    ascii(4, 8) === 'ftyp' // HEIC/HEIF
-  );
 }
 
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic' };

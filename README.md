@@ -82,6 +82,12 @@ cp apps/mobile/.env.example apps/mobile/.env   # set the PUBLISHABLE_KEY from `p
 pnpm dev                  # QR code for Expo Go; press "w" to open in the browser
 ```
 
+After pulling new migrations into an existing local database, apply them without wiping your data
+with `pnpm supabase migration up`, then run `pnpm db:users` again: it only creates the test users
+that are missing.
+
+Tests: `pnpm test` (shared logic) and `pnpm db:test` (database rules, needs the local stack running).
+
 To test on a phone with Expo Go, set `EXPO_PUBLIC_SUPABASE_URL` in `apps/mobile/.env` to the
 computer's LAN IP (e.g. `http://192.168.1.9:54321`) instead of `127.0.0.1`, and keep the Wi-Fi
 network profile as Private so the firewall lets the phone in.

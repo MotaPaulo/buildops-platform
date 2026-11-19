@@ -2,7 +2,7 @@ import { canEditMasterData, hasRoleInCompany, MASTER_DATA_ROLES, type Company, t
 import { router } from 'expo-router';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
-import { Fab, formStyles as s } from '@/components/form';
+import { Fab, formStyles as s, ReloadError } from '@/components/form';
 import { useMemberships } from '@/lib/access';
 import { rows, useFocusData } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
@@ -36,6 +36,7 @@ export default function CostCentersScreen() {
         data={data?.costCenters ?? []}
         keyExtractor={(cc) => cc.id}
         contentContainerStyle={s.list}
+        ListHeaderComponent={<ReloadError error={error} hasData={!!data} />}
         ListEmptyComponent={
           <Text style={s.empty}>{error ?? (data ? 'Nenhum centro de custo cadastrado.' : 'Carregando…')}</Text>
         }

@@ -1,15 +1,17 @@
-import { COMMON_UNITS, type Material } from '@buildops/shared';
+import { canEditMasterData, COMMON_UNITS, type Material } from '@buildops/shared';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 
 import { ACCENT, Chips, Field, formStyles as s, friendlyDbError, PrimaryButton } from '@/components/form';
+import { useMemberships } from '@/lib/access';
 import { rows } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 
 export default function MaterialFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isNew = id === 'new';
+  const { memberships } = useMemberships();
 
   const [loaded, setLoaded] = useState(isNew);
   const [categories, setCategories] = useState<string[]>([]);
@@ -76,6 +78,9 @@ export default function MaterialFormScreen() {
     router.back();
   }
 
+  if (memberships && !canEditMasterData(memberships, 'materials')) {
+    return <Text style={s.center}>Seu perfil não edita materiais.</Text>;
+  }
   if (!loaded) return error ? <Text style={s.center}>{error}</Text> : <ActivityIndicator style={s.center} />;
 
   return (

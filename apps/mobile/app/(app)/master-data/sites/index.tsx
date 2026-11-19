@@ -10,7 +10,7 @@ import {
 import { router } from 'expo-router';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
-import { Fab, formStyles as s } from '@/components/form';
+import { Fab, formStyles as s, ReloadError } from '@/components/form';
 import { useMemberships } from '@/lib/access';
 import { rows, useFocusData } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +39,7 @@ export default function SitesScreen() {
         data={data?.sites ?? []}
         keyExtractor={(x) => x.id}
         contentContainerStyle={s.list}
+        ListHeaderComponent={<ReloadError error={error} hasData={!!data} />}
         ListEmptyComponent={<Text style={s.empty}>{error ?? (data ? 'Nenhuma obra cadastrada.' : 'Carregando…')}</Text>}
         renderItem={({ item }) => (
           <Pressable

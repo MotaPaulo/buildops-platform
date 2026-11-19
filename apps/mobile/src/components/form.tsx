@@ -55,6 +55,12 @@ export function PrimaryButton({ label, onPress, busy }: { label: string; onPress
   );
 }
 
+/** Shown above a list when a reload failed but older data is still on screen. */
+export function ReloadError({ error, hasData }: { error: string | null; hasData: boolean }) {
+  if (!error || !hasData) return null;
+  return <Text style={[formStyles.error, formStyles.banner]}>Não foi possível atualizar: {error}</Text>;
+}
+
 /** Floating action button at the bottom right of a list screen. */
 export function Fab({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -85,6 +91,7 @@ export const formStyles = StyleSheet.create({
   chipTextActive: { color: '#fff', fontWeight: '600' },
   link: { color: ACCENT, fontWeight: '600' },
   error: { color: '#b3261e' },
+  banner: { marginBottom: 8 },
   button: { backgroundColor: ACCENT, borderRadius: 8, padding: 14, alignItems: 'center' },
   disabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
@@ -103,6 +110,7 @@ export const formStyles = StyleSheet.create({
 export function friendlyDbError(code: string | undefined, message: string, duplicate = 'Esse registro já existe.'): string {
   if (code === '42501') return 'Seu perfil não tem permissão para essa operação.';
   if (code === '23505') return duplicate;
-  if (code === '23503') return 'Os itens escolhidos precisam ser da mesma empresa.';
+  // Only the composite keys that tie a row to its company get the friendly message.
+  if (code === '23503' && /company/.test(message)) return 'Os itens escolhidos precisam ser da mesma empresa.';
   return message;
 }

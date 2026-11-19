@@ -2,7 +2,7 @@ import { hasRoleInCompany, MASTER_DATA_ROLES, type Company, type StockBalance, t
 import { router } from 'expo-router';
 import { FlatList, Pressable, Text } from 'react-native';
 
-import { formStyles as s } from '@/components/form';
+import { formStyles as s, ReloadError } from '@/components/form';
 import { useMemberships } from '@/lib/access';
 import { rows, useFocusData } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
@@ -32,9 +32,12 @@ export default function MinimumsWarehousesScreen() {
       keyExtractor={(w) => w.id}
       contentContainerStyle={s.list}
       ListHeaderComponent={
+        <>
+        <ReloadError error={error} hasData={!!data} />
         <Text style={[s.hint, { marginBottom: 8 }]}>
           Escolha o depósito. O saldo aparece em destaque quando fica abaixo do mínimo.
         </Text>
+        </>
       }
       ListEmptyComponent={<Text style={s.empty}>{error ?? (data ? 'Nenhum depósito ativo.' : 'Carregando…')}</Text>}
       renderItem={({ item }) => {

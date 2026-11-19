@@ -30,6 +30,8 @@ export default function SiteFormScreen() {
   const [address, setAddress] = useState('');
   const [status, setStatus] = useState<SiteStatus>('active');
   const [createWarehouse, setCreateWarehouse] = useState(true);
+  /** Set when the site was saved but its warehouse wasn't: a retry only creates the warehouse. */
+  const [createdSiteId, setCreatedSiteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,10 +89,14 @@ export default function SiteFormScreen() {
     setSaving(true);
     try {
       if (isNew) {
-        const res = await supabase.from('sites').insert({ ...fields, company_id: companyId }).select('id');
-        if (res.error) throw res.error;
-        const siteId = res.data?.[0]?.id as string | undefined;
-        if (!siteId) throw new Error('Seu perfil não tem permissão para cadastrar obras.');
+        let siteId = createdSiteId;
+        if (!siteId) {
+          const res = await supabase.from('sites').insert({ ...fields, company_id: companyId }).select('id');
+          if (res.error) throw res.error;
+          siteId = (res.data?.[0]?.id as string | undefined) ?? null;
+          if (!siteId) throw new Error('Seu perfil não tem permissão para cadastrar obras.');
+          setCreatedSiteId(siteId);
+        }
 
         if (createWarehouse) {
           const w = await supabase
@@ -99,7 +105,9 @@ export default function SiteFormScreen() {
           // The site is already saved; report the warehouse failure without losing it.
           if (w.error) {
             setSaving(false);
-            setError(`Obra cadastrada, mas o depósito do canteiro não foi criado: ${w.error.message}`);
+            setError(
+              `Obra cadastrada, mas o depósito do canteiro não foi criado: ${w.error.message}. Toque de novo para tentar só o depósito, ou desligue a opção.`,
+            );
             return;
           }
         }
@@ -169,7 +177,19 @@ export default function SiteFormScreen() {
         )}
 
         {error && <Text style={s.error}>{error}</Text>}
-        <PrimaryButton label={isNew ? 'Cadastrar obra' : 'Salvar'} onPress={save} busy={saving} />
+        <PrimaryButton
+          label={
+            createdSiteId
+              ? createWarehouse
+                ? 'Criar depósito do canteiro'
+                : 'Concluir'
+              : isNew
+                ? 'Cadastrar obra'
+                : 'Salvar'
+          }
+          onPress={save}
+          busy={saving}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

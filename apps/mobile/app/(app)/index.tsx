@@ -3,9 +3,11 @@ import {
   BALANCE_VIEWS,
   canEditMasterData,
   groupBalances,
+  groupCostCenterBalances,
   MASTER_DATA_ROLES,
   type BalanceGroupRow,
   type BalanceView,
+  type CostCenterBalance,
   type MasterDataKind,
   type StockBalance,
 } from '@buildops/shared';
@@ -51,6 +53,7 @@ export default function StockBalancesScreen() {
   const noAccess = memberships?.length === 0;
 
   const [balances, setBalances] = useState<StockBalance[]>([]);
+  const [charged, setCharged] = useState<CostCenterBalance[]>([]);
   const [sites, setSites] = useState<SiteRef[]>([]);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [view, setView] = useState<BalanceView>('warehouse');
@@ -60,12 +63,14 @@ export default function StockBalancesScreen() {
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [b, st, c] = await Promise.all([
+      const [b, cc, st, c] = await Promise.all([
         supabase.rpc('get_stock_balances'),
+        supabase.rpc('get_cost_center_balances'),
         supabase.from('sites').select('id, name, cost_center:cost_centers(code)'),
         supabase.from('companies').select('id, name'),
       ]);
       setBalances(resultRows<StockBalance[]>(b));
+      setCharged(resultRows<CostCenterBalance[]>(cc));
       setSites(resultRows<SiteRef[]>(st));
       setCompanies(resultRows<{ id: string; name: string }[]>(c));
       setError(null);
@@ -86,6 +91,7 @@ export default function StockBalancesScreen() {
   const views = BALANCE_VIEWS.filter((v) => v !== 'company' || companies.length > 1);
 
   const sections = useMemo(() => {
+    if (view === 'costCenter') return groupCostCenterBalances(charged).map((g) => ({ ...g, data: g.rows }));
     const siteLabel = new Map(
       sites.map((x) => [x.id, x.cost_center ? `${x.cost_center.code} · ${x.name}` : x.name]),
     );
@@ -96,7 +102,7 @@ export default function StockBalancesScreen() {
       noSite: 'Almoxarifados (sem obra)',
       group: companies.length > 1 ? 'Todas as empresas' : 'Total',
     }).map((g) => ({ ...g, data: g.rows }));
-  }, [balances, sites, companies, view]);
+  }, [balances, charged, sites, companies, view]);
 
   function open(row: BalanceGroupRow) {
     if (row.warehouse_id) {
@@ -131,9 +137,15 @@ export default function StockBalancesScreen() {
                 value={view}
                 onChange={(v) => setView(v as BalanceView)}
               />
-              {view !== 'warehouse' && (
+              {view === 'costCenter' ? (
+                <Text style={styles.hint}>
+                  Quanto foi apropriado a cada centro de custo (entradas − saídas ± transferências), em todos os
+                  depósitos. Não é o saldo físico.
+                </Text>
+              ) : view !== 'warehouse' ? (
                 <Text style={styles.hint}>Soma dos depósitos. Toque num material para ver o histórico.</Text>
-              )}
+              ) : null}
+              {error && sections.length > 0 && <Text style={styles.error}>Não foi possível atualizar: {error}</Text>}
             </View>
           ) : undefined
         }
@@ -148,7 +160,7 @@ export default function StockBalancesScreen() {
                 {alert && (
                   <Text style={styles.alert}>
                     {item.warehouse_id
-                      ? `Abaixo do mínimo (${formatQty(minimumOf(balances, item) ?? 0)} ${item.unit})`
+                      ? `Abaixo do mínimo (${formatQty(item.min_quantity ?? 0)} ${item.unit})`
                       : `Abaixo do mínimo em ${item.below_minimum_count} ${item.below_minimum_count === 1 ? 'depósito' : 'depósitos'}`}
                   </Text>
                 )}
@@ -169,10 +181,6 @@ export default function StockBalancesScreen() {
   );
 }
 
-function minimumOf(balances: StockBalance[], row: BalanceGroupRow) {
-  return balances.find((b) => b.warehouse_id === row.warehouse_id && b.material_id === row.material_id)?.min_quantity;
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   headerActions: { flexDirection: 'row', gap: 16, paddingHorizontal: 12 },
@@ -180,6 +188,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 96, gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
   views: { gap: 6, marginBottom: 4 },
   hint: { fontSize: 13, color: '#666' },
+  error: { fontSize: 13, color: '#b3261e' },
   section: { fontSize: 13, fontWeight: '700', color: ACCENT, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 12 },
   fab: { position: 'absolute', right: 16, bottom: 24, backgroundColor: ACCENT, borderRadius: 28, paddingVertical: 14, paddingHorizontal: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   fabText: { color: '#fff', fontSize: 16, fontWeight: '600' },
