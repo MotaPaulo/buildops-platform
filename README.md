@@ -111,6 +111,13 @@ On Windows, a running `pnpm dev` may write wrong typed routes for newly added sc
 `/master-data/cost-centers/index` instead of `/master-data/cost-centers`), which breaks
 `pnpm typecheck`. Restarting `pnpm dev` regenerates them correctly.
 
+### Movements report and Excel export
+
+In the browser (`pnpm web`), "Relatório" filters movements by period, company, warehouse, cost
+center, material and kind, and exports the filtered movements and the current balances to Excel
+(`.xlsx`). The phone app shows the report without export. See
+[Movements report](docs/inventory.md#movements-report-and-excel-export).
+
 ### Test users
 
 All with password `buildops123`. Companies and cost centers come from `supabase/seed.sql`.

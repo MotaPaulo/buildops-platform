@@ -19,6 +19,8 @@ export interface MovementRow {
   warehouse: { name: string } | null;
   cost_center: { code: string; name: string } | null;
   author: { full_name: string } | null;
+  /** Only read by the report (REPORT_SELECT). */
+  company?: { name: string } | null;
   transfer: {
     from: { name: string } | null;
     to: { name: string } | null;
@@ -43,6 +45,9 @@ export const MOVEMENT_SELECT = `
     authorizer:profiles!authorized_by(full_name)
   )
 `;
+
+/** MOVEMENT_SELECT plus the company name, for the report and its Excel export. */
+export const REPORT_SELECT = `${MOVEMENT_SELECT}, company:companies(name)`;
 
 const OTHER_COMPANY = 'outra empresa';
 

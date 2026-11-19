@@ -18,9 +18,9 @@ Stock receipts and issues, separated by company and cost center, with a consolid
 - [x] Movement history with filters, details and photos
 - [x] Balances by warehouse, site, company and group consolidated, plus the quantity charged to each cost center
 - [x] Automated tests: shared logic (vitest) and database rules (pgTAP)
-- [ ] Web dashboard with filters and Excel export
+- [x] Web dashboard with filters and Excel export
 - [ ] Reading data from current systems (depends on Stage 0)
-- [ ] User and membership management by the directors
+- [x] User and membership management by the directors
 
 ## Rules
 
@@ -143,6 +143,31 @@ Each movement opens a read-only detail: who recorded it (or the source system, f
 who authorized it (transfers), invoice, unit and total cost, notes and the photo. Users only see
 movements of cost centers they have access to; the other side of a transfer between companies shows
 as "outra empresa".
+
+## Movements report and Excel export
+
+"Relatório" on the balances screen (shown to every user with access) is a report meant for the
+browser: from 900 px wide it shows a table, on narrower screens the same cards as the history.
+
+- **Filters:** period (`dd/mm/aaaa`, last 30 days by default, end date included), company (when the
+  user sees more than one), warehouse and cost center (limited to the chosen company), material
+  (search by name) and kind (transfers include both sides). An unparseable date ("Data inválida.")
+  or a start after the end ("A data inicial precisa ser anterior à final.") runs no query.
+- **Result:** the total number of matching movements and the 200 most recent ones, newest first.
+- **"Exportar movimentações"** downloads an `.xlsx` with every matching movement (fetched 1,000 at a
+  time with the same query as the screen, so the file and the screen can't drift). Columns: Data,
+  Tipo, Empresa, Depósito, Centro de custo, Material, Unidade, Quantidade (signed like the history:
+  issues and outgoing transfers are negative), Custo unitário, Nota fiscal, Registrado por, Origem
+  and Observações. Dates are real date cells in local time. Above 10,000 movements the export is
+  refused and the user is asked to narrow the period.
+- **"Exportar saldos"** downloads an `.xlsx` with the current balance of every warehouse and
+  material the user can see (`get_stock_balances`): company, site, warehouse, material, unit,
+  balance, minimum, below-minimum flag and last movement.
+
+Everything is read with the signed-in user's session, so RLS decides what each profile sees and
+exports: a foreman of OB-001 only gets OB-001 movements. The file is written in the browser by a
+pure-JS library (`write-excel-file`); in the phone app the report is view-only and shows
+"Exportação disponível no navegador." instead of the export buttons.
 
 ## Photos
 

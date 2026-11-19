@@ -17,6 +17,7 @@ export default function AppLayout() {
           <Stack.Screen name="transfer" options={{ title: 'Transferência' }} />
           <Stack.Screen name="history/index" options={{ title: 'Histórico' }} />
           <Stack.Screen name="history/[id]" options={{ title: 'Movimentação' }} />
+          <Stack.Screen name="report" options={{ title: 'Relatório' }} />
           <Stack.Screen name="master-data/index" options={{ title: 'Cadastros' }} />
           <Stack.Screen name="master-data/materials/index" options={{ title: 'Materiais' }} />
           <Stack.Screen name="master-data/materials/[id]" options={{ title: 'Material' }} />

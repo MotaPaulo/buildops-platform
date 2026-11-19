@@ -32,9 +32,14 @@ function HeaderActions() {
   return (
     <View style={styles.headerActions}>
       {!!memberships?.length && (
-        <Pressable onPress={() => router.push('/history')} hitSlop={8}>
-          <Text style={styles.headerLink}>Histórico</Text>
-        </Pressable>
+        <>
+          <Pressable onPress={() => router.push('/history')} hitSlop={8}>
+            <Text style={styles.headerLink}>Histórico</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/report')} hitSlop={8}>
+            <Text style={styles.headerLink}>Relatório</Text>
+          </Pressable>
+        </>
       )}
       {canEditAny && (
         <Pressable onPress={() => router.push('/master-data')} hitSlop={8}>
